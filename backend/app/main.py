@@ -8,7 +8,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 
 from app.config import settings
 from app.core.logging import configure_logging, get_logger
-from app.routers import health
+from app.routers import health, protected
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -49,10 +49,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 
 # Configure CORS (must be first)
-origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -70,6 +69,7 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Include routers
 app.include_router(health.router)
+app.include_router(protected.router)
 
 
 @app.get("/")
