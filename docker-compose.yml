@@ -87,7 +87,7 @@ services:
   # Docling Serve (Document Processing)
   # ==========================================================================
   docling:
-    image: ds4sd/docling-serve:latest
+    image: quay.io/docling-project/docling-serve:v1.10.0
     ports:
       - "5000:5000"
     healthcheck:
