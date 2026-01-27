@@ -8,11 +8,6 @@ from structlog.processors import (
     format_exc_info,
 )
 from structlog.dev import ConsoleRenderer
-from structlog.stdlib import (
-    ProcessorFormatter,
-    add_logger_name,
-    filter_by_level,
-)
 
 
 def configure_logging(environment: str = "production") -> None:
@@ -26,7 +21,6 @@ def configure_logging(environment: str = "production") -> None:
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         add_log_level,
-        add_logger_name,
         StackInfoRenderer(),
         format_exc_info,
         TimeStamper(fmt="iso"),
@@ -35,17 +29,9 @@ def configure_logging(environment: str = "production") -> None:
     if environment == "development":
         # Development: human-readable console output
         processors = shared_processors + [ConsoleRenderer()]
-        formatter = ProcessorFormatter(
-            processor=ConsoleRenderer(),
-            foreign_pre_chain=shared_processors,
-        )
     else:
         # Production: JSON output
         processors = shared_processors + [structlog.processors.JSONRenderer()]
-        formatter = ProcessorFormatter(
-            processor=structlog.processors.JSONRenderer(),
-            foreign_pre_chain=shared_processors,
-        )
 
     # Configure structlog
     structlog.configure(
@@ -55,13 +41,6 @@ def configure_logging(environment: str = "production") -> None:
         logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,
     )
-
-    # Configure standard logging to work with structlog
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-    root_logger.addHandler(handler)
-    root_logger.setLevel(logging.INFO)
 
 
 def get_logger():
