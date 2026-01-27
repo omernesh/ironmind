@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Frontend (Next.js with Better Auth)
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - BETTER_AUTH_SECRET=${AUTH_SECRET}
+      - DATABASE_PATH=/app/data/auth.db
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - frontend-data:/app/data
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # Backend (FastAPI)
+  # ==========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SERVICE_NAME=${SERVICE_NAME:-ironmind-backend}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - JWT_SECRET_KEY=${AUTH_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - FALKORDB_URL=redis://falkordb:6379
+      - FALKORDB_PASSWORD=${FALKORDB_PASSWORD:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - backend-data:/app/data
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # FalkorDB (Graph Database with Vector Support)
+  # ==========================================================================
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_ARGS=--requirepass ${FALKORDB_PASSWORD:-}
+    volumes:
+      - falkordb-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # Docling Serve (Document Processing) - Added for future phases
+  # ==========================================================================
+  # docling:
+  #   image: ds4sd/docling-serve:latest
+  #   ports:
+  #     - "5000:5000"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
+  #   networks:
+  #     - ironmind-network
+
+volumes:
+  falkordb-data:
+    driver: local
+  backend-data:
+    driver: local
+  frontend-data:
+    driver: local
+
+networks:
+  ironmind-network:
+    driver: bridge
