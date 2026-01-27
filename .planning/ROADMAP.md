@@ -12,7 +12,7 @@ IRONMIND delivers production-quality RAG capabilities for aerospace/defense tech
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Infrastructure Foundation** - Docker setup, auth, health checks, basic FastAPI structure
+- [x] **Phase 1: Infrastructure Foundation** - Docker setup, auth, health checks, basic FastAPI structure
 - [ ] **Phase 2: Document Processing Pipeline** - Docling integration, semantic chunking, metadata preservation
 - [ ] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Mistral reranking, basic Q&A
 - [ ] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
@@ -36,11 +36,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 01-01-PLAN.md - Backend foundation with FastAPI, health endpoint, structured logging
-- [ ] 01-02-PLAN.md - Frontend Better Auth setup with login/register pages
-- [ ] 01-03-PLAN.md - Backend JWT validation middleware for protected endpoints
-- [ ] 01-04-PLAN.md - Docker Compose orchestration with environment configuration
-- [ ] 01-05-PLAN.md - Frontend-backend auth integration and end-to-end verification
+- [x] 01-01-PLAN.md - Backend foundation with FastAPI, health endpoint, structured logging
+- [x] 01-02-PLAN.md - Frontend Better Auth setup with login/register pages
+- [x] 01-03-PLAN.md - Backend JWT validation middleware for protected endpoints
+- [x] 01-04-PLAN.md - Docker Compose orchestration with environment configuration
+- [x] 01-05-PLAN.md - Frontend-backend auth integration and end-to-end verification
 
 ### Phase 2: Document Processing Pipeline
 **Goal**: High-quality document parsing with semantic chunking and structure preservation for accurate retrieval
@@ -53,10 +53,13 @@ Plans:
   4. System stores original files to /data/raw/{user_id}/{doc_id} and processed output to /data/processed/{user_id}/{doc_id}
   5. Upload endpoint returns per-file status (Processing, Indexed, Failed)
   6. System logs doc_ingestion_started and doc_ingestion_completed events with durations
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 02-01: [Brief description - to be created during plan-phase]
+- [ ] 02-01-PLAN.md - Storage layer with document models, database, and secure file storage
+- [ ] 02-02-PLAN.md - Document upload endpoint and docling-serve integration
+- [ ] 02-03-PLAN.md - Semantic chunking pipeline with txtai indexing
+- [ ] 02-04-PLAN.md - Status polling endpoint and end-to-end pipeline verification
 
 ### Phase 3: Core RAG with Hybrid Retrieval
 **Goal**: Working end-to-end RAG pipeline with hybrid retrieval (semantic + BM25) and Mistral reranking for technical document Q&A
@@ -132,8 +135,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure Foundation | 5/5 | Complete ✓ | 2026-01-27 |
-| 2. Document Processing Pipeline | 0/TBD | Not started | - |
+| 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
+| 2. Document Processing Pipeline | 0/4 | Ready | - |
 | 3. Core RAG with Hybrid Retrieval | 0/TBD | Not started | - |
 | 4. Knowledge Graph Integration | 0/TBD | Not started | - |
 | 5. Multi-Source Synthesis | 0/TBD | Not started | - |
