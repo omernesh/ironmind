@@ -118,7 +118,9 @@ Accurate, grounded answers from technical documentation with multi-source synthe
 - **LLM Provider**: OpenAI GPT-5-mini (configurable via environment variables)
 - **Embeddings**: OpenAI text-embedding-3-small
 - **Reranking**: Mistral rerank model via DeepInfra API
-- **Deployment Target**: Hetzner VPS with Docker Compose orchestration
+- **Email Provider**: Mailgun SMTP for Better Auth email verification/password reset
+- **Domain**: ironmind.chat (owned, for deployment)
+- **Deployment Target**: Hetzner VPS with Docker Compose orchestration, HTTPS at ironmind.chat
 - **Budget**: POC-appropriate - avoid expensive infrastructure or API costs during development
 - **Security**: HTTPS termination at deployment level, no open anonymous APIs, basic authentication only
 - **Branding**: IRONMIND branding throughout, IAI logo (IAI_logo_2025.jpg), no LobeChat/Claude references visible
@@ -135,6 +137,8 @@ Accurate, grounded answers from technical documentation with multi-source synthe
 | Hybrid RAG (BM25 + embeddings) | Technical docs require exact term matching (IDs, configs, parameters) alongside semantic understanding | — Pending |
 | LobeChat frontend with IRONMIND branding | Professional UI out-of-box, Better Auth built-in, rebrand to remove LobeChat references | — Pending |
 | OpenAI GPT-5-mini | Latest model, faster and cheaper than GPT-4 while maintaining quality for grounded Q&A | — Pending |
+| Mailgun SMTP | Better Auth email verification/password reset, reliable email delivery, straightforward API | — Pending |
+| ironmind.chat domain | Professional domain for deployment, branded URL for assignment submission | — Pending |
 | Hetzner VPS | European infrastructure, cost-effective, straightforward deployment, API for automation | — Pending |
 | Monorepo structure | Professional presentation for GitHub submission, clear organization for reviewers | — Pending |
 

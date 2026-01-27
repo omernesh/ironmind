@@ -171,13 +171,105 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (To be populated by roadmapper) | | |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| INGEST-01 | Phase 2 | Pending |
+| INGEST-02 | Phase 2 | Pending |
+| INGEST-03 | Phase 2 | Pending |
+| INGEST-04 | Phase 2 | Pending |
+| INGEST-05 | Phase 2 | Pending |
+| INGEST-06 | Phase 2 | Pending |
+| INGEST-07 | Phase 2 | Pending |
+| INGEST-08 | Phase 2 | Pending |
+| INGEST-09 | Phase 2 | Pending |
+| INGEST-10 | Phase 2 | Pending |
+| INDEX-01 | Phase 3 | Pending |
+| INDEX-02 | Phase 3 | Pending |
+| INDEX-03 | Phase 3 | Pending |
+| INDEX-04 | Phase 3 | Pending |
+| INDEX-05 | Phase 3 | Pending |
+| INDEX-06 | Phase 3 | Pending |
+| RETRIEVAL-01 | Phase 3 | Pending |
+| RETRIEVAL-02 | Phase 3 | Pending |
+| RETRIEVAL-03 | Phase 3 | Pending |
+| RETRIEVAL-04 | Phase 3 | Pending |
+| RETRIEVAL-05 | Phase 3 | Pending |
+| RETRIEVAL-06 | Phase 3 | Pending |
+| RETRIEVAL-07 | Phase 3 | Pending |
+| RETRIEVAL-08 | Phase 3 | Pending |
+| CHAT-01 | Phase 3 | Pending |
+| CHAT-02 | Phase 3 | Pending |
+| CHAT-03 | Phase 3 | Pending |
+| CHAT-04 | Phase 3 | Pending |
+| CHAT-05 | Phase 3 | Pending |
+| CHAT-06 | Phase 3 | Pending |
+| CHAT-07 | Phase 3 | Pending |
+| CHAT-08 | Phase 3 | Pending |
+| CHAT-09 | Phase 3 | Pending |
+| LLM-01 | Phase 3 | Pending |
+| LLM-02 | Phase 3 | Pending |
+| LLM-03 | Phase 3 | Pending |
+| LLM-04 | Phase 3 | Pending |
+| KG-01 | Phase 4 | Pending |
+| KG-02 | Phase 4 | Pending |
+| KG-03 | Phase 4 | Pending |
+| KG-04 | Phase 4 | Pending |
+| KG-05 | Phase 4 | Pending |
+| KG-06 | Phase 4 | Pending |
+| OBS-01 | Phase 1 | Pending |
+| OBS-02 | Phase 1 | Pending |
+| OBS-03 | Phase 1 | Pending |
+| OBS-04 | Phase 1 | Pending |
+| OBS-05 | Phase 2 | Pending |
+| OBS-06 | Phase 3 | Pending |
+| OBS-07 | Phase 3 | Pending |
+| UI-01 | Phase 6 | Pending |
+| UI-02 | Phase 6 | Pending |
+| UI-03 | Phase 6 | Pending |
+| UI-04 | Phase 6 | Pending |
+| UI-05 | Phase 6 | Pending |
+| UI-06 | Phase 6 | Pending |
+| UI-07 | Phase 6 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
+| INFRA-04 | Phase 6 | Pending |
+| INFRA-05 | Phase 1 | Pending |
+| INFRA-06 | Phase 6 | Pending |
+| INFRA-07 | Phase 1 | Pending |
+| INFRA-08 | Phase 2 | Pending |
+| INFRA-09 | Phase 4 | Pending |
+| INFRA-10 | Phase 1 | Pending |
+| DOCS-01 | Phase 6 | Pending |
+| DOCS-02 | Phase 6 | Pending |
+| DOCS-03 | Phase 6 | Pending |
+| DOCS-04 | Phase 6 | Pending |
+| DOCS-05 | Phase 6 | Pending |
+| DOCS-06 | Phase 6 | Pending |
+| DOCS-07 | Phase 6 | Pending |
+| DOCS-08 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 64 total
-- Mapped to phases: (pending roadmap)
-- Unmapped: (pending roadmap)
+- Mapped to phases: 64 (100% coverage)
+- Unmapped: 0 (no orphans)
+
+**Phase Distribution:**
+- Phase 1 (Infrastructure Foundation): 14 requirements
+- Phase 2 (Document Processing Pipeline): 12 requirements
+- Phase 3 (Core RAG with Hybrid Retrieval): 26 requirements
+- Phase 4 (Knowledge Graph Integration): 6 requirements
+- Phase 5 (Multi-Source Synthesis): 0 explicit requirements (enhances CHAT-06, CHAT-05)
+- Phase 6 (Frontend Integration & Deployment): 15 requirements
+
+**Notes:**
+- Phase 5 has no explicit requirements but enhances multi-source synthesis capabilities (CHAT-06) and citation quality (CHAT-05)
+- Phase 3 is the largest phase (26 requirements) covering indexing, retrieval, chat, and LLM integration as coherent RAG pipeline
+- All authentication requirements front-loaded to Phase 1 for security-first approach
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 after initial definition*
+*Last updated: 2026-01-27 after roadmap traceability mapping*
