@@ -8,7 +8,8 @@ from asgi_correlation_id import CorrelationIdMiddleware
 
 from app.config import settings
 from app.core.logging import configure_logging, get_logger
-from app.routers import health, protected
+from app.core.database import DocumentDatabase
+from app.routers import health, protected, documents
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -70,6 +71,15 @@ app.add_middleware(RequestLoggingMiddleware)
 # Include routers
 app.include_router(health.router)
 app.include_router(protected.router)
+app.include_router(documents.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    db = DocumentDatabase(settings.database_path)
+    await db.initialize()
+    logger.info("app_startup_complete")
 
 
 @app.get("/")
