@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 1 of 6 (Infrastructure Foundation)
-Plan: 1 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-27 - Completed 01-01-PLAN.md (Backend Foundation)
+Last activity: 2026-01-27 - Completed 01-03-PLAN.md (Backend JWT Validation)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [███░░░░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 128.5 min (2h 8m)
-- Total execution time: 2.1 hours
+- Total plans completed: 2
+- Average duration: 70.1 min (1h 10m)
+- Total execution time: 2.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-foundation | 1/5 | 2.1h | 2.1h |
+| 01-infrastructure-foundation | 2/5 | 2.3h | 1.2h |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2.1h)
-- Trend: First plan baseline established
+- Last 5 plans: 01-01 (2.1h), 01-03 (11.7m)
+- Trend: Significant velocity improvement on smaller focused plans
 
 *Updated after each plan completion*
 
@@ -59,6 +59,13 @@ Recent decisions affecting current work:
 - Implementation: Gunicorn with Uvicorn workers for production deployment
 - Implementation: Non-root user (appuser) in Docker for security
 
+**From 01-03 execution:**
+- Implementation: FastAPI Depends injection for JWT validation (not global middleware)
+- Implementation: Extract user_id from 'sub' claim (Better Auth convention)
+- Implementation: Structlog context binding for user_id in logs
+- Implementation: Optional authentication dependency for mixed endpoints
+- Implementation: HS256 algorithm for JWT (symmetric key)
+
 ### Pending Todos
 
 None yet.
@@ -81,7 +88,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 (Phase 1 execution)
-Stopped at: Completed 01-01-PLAN.md (Backend Foundation)
+Last session: 2026-01-27 15:34 (Phase 1 execution)
+Stopped at: Completed 01-03-PLAN.md (Backend JWT Validation)
 Resume file: None
-Next action: Execute 01-02-PLAN.md (Docker Compose orchestration)
+Next action: Execute 01-04-PLAN.md (Docker Compose orchestration with RAG services)
