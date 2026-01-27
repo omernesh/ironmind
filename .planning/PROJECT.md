@@ -1,8 +1,8 @@
-# DocRAG POC for IAI
+# IRONMIND - DocRAG POC for IAI
 
 ## What This Is
 
-A production-quality RAG (Retrieval-Augmented Generation) proof-of-concept that enables authenticated users to upload aerospace/defense technical documents and interact with them through an intelligent chat interface. Built for an IAI (Israel Aerospace Industries) job assignment, the system demonstrates advanced RAG capabilities including knowledge graph integration, hybrid retrieval (semantic + keyword), and engineering-grade explainability with transparent source traceability.
+IRONMIND is a production-quality RAG (Retrieval-Augmented Generation) proof-of-concept that enables authenticated users to upload aerospace/defense technical documents and interact with them through an intelligent chat interface. Built for an IAI (Israel Aerospace Industries) job assignment, the system demonstrates advanced RAG capabilities including FalkorDB knowledge graph integration, hybrid retrieval (semantic + keyword), Mistral reranking, and engineering-grade explainability with transparent source traceability.
 
 ## Core Value
 
@@ -114,24 +114,29 @@ Accurate, grounded answers from technical documentation with multi-source synthe
 
 - **Timeline**: Deadline February 1, 2026 (Sunday) - approximately 5 days from project start
 - **Scale**: POC only - maximum 10 documents per user, 2-3 concurrent users
-- **Tech Stack**: Python (FastAPI backend), LobeChat (frontend), txtai (RAG), Docling (doc processing)
-- **LLM Provider**: OpenAI GPT-4 (configurable via environment variables)
-- **Deployment Target**: Single VPS/cloud instance (Hetzner or similar), Docker Compose orchestration
+- **Tech Stack**: Python (FastAPI backend), LobeChat (frontend with IRONMIND branding), txtai (RAG), docling-serve (doc processing API), FalkorDB (knowledge graph)
+- **LLM Provider**: OpenAI GPT-5-mini (configurable via environment variables)
+- **Embeddings**: OpenAI text-embedding-3-small
+- **Reranking**: Mistral rerank model via DeepInfra API
+- **Deployment Target**: Hetzner VPS with Docker Compose orchestration
 - **Budget**: POC-appropriate - avoid expensive infrastructure or API costs during development
 - **Security**: HTTPS termination at deployment level, no open anonymous APIs, basic authentication only
+- **Branding**: IRONMIND branding throughout, IAI logo (IAI_logo_2025.jpg), no LobeChat/Claude references visible
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| txtai for RAG backend | Lightweight, native hybrid search, knowledge graph support, easier to reason about than LangChain | — Pending |
-| Docling for document processing | Designed for technical document structure preservation, better than generic PDF parsers for aerospace docs | — Pending |
+| txtai for RAG backend | Lightweight, native hybrid search, embeddings management, easier to reason about than LangChain | — Pending |
+| FalkorDB for knowledge graph | Lighter and more flexible than Neo4j, vector + graph in single DB, good for POC scale | — Pending |
+| docling-serve API | Separate service for document processing, better separation of concerns than embedded Docling library | — Pending |
+| OpenAI text-embedding-3-small | Cost-effective, high-quality embeddings for technical content, well-tested | — Pending |
+| Mistral rerank (DeepInfra) | 30-50% precision boost via reranking, API-based avoids local model hosting complexity | — Pending |
 | Hybrid RAG (BM25 + embeddings) | Technical docs require exact term matching (IDs, configs, parameters) alongside semantic understanding | — Pending |
-| Knowledge graph integration | Multi-component questions span entities/relations (service → config, component → dependency) | — Pending |
-| LobeChat frontend | Professional UI out-of-box, Better Auth built-in, modern UX without custom frontend work | — Pending |
-| OpenAI GPT-4 only | Focus on backend quality over LLM abstraction complexity for POC timeline | — Pending |
+| LobeChat frontend with IRONMIND branding | Professional UI out-of-box, Better Auth built-in, rebrand to remove LobeChat references | — Pending |
+| OpenAI GPT-5-mini | Latest model, faster and cheaper than GPT-4 while maintaining quality for grounded Q&A | — Pending |
+| Hetzner VPS | European infrastructure, cost-effective, straightforward deployment, API for automation | — Pending |
 | Monorepo structure | Professional presentation for GitHub submission, clear organization for reviewers | — Pending |
-| Cloud deployment required | Assignment expects working demo, not just local code | — Pending |
 
 ---
 *Last updated: 2026-01-27 after initialization*
