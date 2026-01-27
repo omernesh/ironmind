@@ -1,8 +1,12 @@
 import { betterAuth } from "better-auth";
 import Database from "better-sqlite3";
 
+// Database path - use /app/data in Docker, local path otherwise
+const dbPath = process.env.DATABASE_PATH || "./auth.db";
+
 export const auth = betterAuth({
-  database: new Database(process.env.DATABASE_PATH || "./auth.db"),  // SQLite for POC simplicity
+  database: new Database(dbPath),
+  secret: process.env.BETTER_AUTH_SECRET,  // Shared secret for JWT signing
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,  // Disable for POC speed
@@ -20,3 +24,6 @@ export const auth = betterAuth({
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ],
 });
+
+// Export auth type for use in other files
+export type Auth = typeof auth;
