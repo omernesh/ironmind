@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 1 of 6 (Infrastructure Foundation)
-Plan: 4 of 5 in current phase
-Status: In progress
-Last activity: 2026-01-27 - Completed 01-04-PLAN.md (Docker Compose Orchestration)
+Plan: 5 of 5 in current phase
+Status: Phase complete
+Last activity: 2026-01-27 - Completed 01-05-PLAN.md (Frontend-Backend Auth Integration)
 
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 55.0 min (55 min)
-- Total execution time: 3.8 hours
+- Total plans completed: 5
+- Average duration: 50.0 min (50 min)
+- Total execution time: 4.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-foundation | 4/5 | 3.8h | 57m |
+| 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2.1h), 01-03 (11.7m), 01-02 (1.3h), 01-04 (14m)
-- Trend: Faster execution as infrastructure matures, integration tasks quicker
+- Last 5 plans: 01-01 (2.1h), 01-03 (11.7m), 01-02 (1.3h), 01-04 (14m), 01-05 (30m)
+- Trend: Consistent execution speed, complex integration tasks ~30-60min, setup tasks ~12-15min
 
 *Updated after each plan completion*
 
@@ -80,6 +80,14 @@ Recent decisions affecting current work:
 - Implementation: Named network (ironmind-network) for service-to-service communication
 - Implementation: Service health checks with depends_on for startup ordering
 
+**From 01-05 execution:**
+- Implementation: Token exchange pattern (Better Auth session -> JWT token via /api/auth/backend-token)
+- Implementation: Jose library for JWT creation (ESM-native, Next.js compatible)
+- Implementation: 15-minute token expiry with 1-minute refresh buffer and in-memory caching
+- Implementation: Manual database schema creation (Better Auth v1.4.17 doesn't auto-create)
+- Implementation: WAL mode enabled for better SQLite concurrency
+- Implementation: Browser uses localhost:8000, server-side uses backend:8000 for API calls
+
 ### Pending Todos
 
 None yet.
@@ -91,6 +99,7 @@ None yet.
 - Docling integration requires Day 1 validation on actual aerospace documents
 - ~~Better Auth configuration complexity may delay auth implementation~~ **RESOLVED:** Better Auth configured with SQLite (01-02)
 - ~~Docker Compose orchestration with 4+ services needs testing~~ **RESOLVED:** Docker Compose verified with all services healthy (01-04)
+- ~~End-to-end auth flow needs verification~~ **RESOLVED:** Complete auth flow verified in 01-05 (register -> login -> dashboard -> backend API -> logout)
 
 **Phase 4 Risks (Research Flag):**
 
@@ -105,7 +114,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 19:37 (Phase 1 execution)
-Stopped at: Completed 01-04-PLAN.md (Docker Compose Orchestration)
+Last session: 2026-01-27 20:08 (Phase 1 complete)
+Stopped at: Completed 01-05-PLAN.md (Frontend-Backend Auth Integration) - **PHASE 1 COMPLETE**
 Resume file: None
-Next action: Execute 01-05-PLAN.md (Integration testing and end-to-end verification)
+Next action: Begin Phase 2 - Document Ingestion (planning or execution)
