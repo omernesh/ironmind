@@ -33,10 +33,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Docker Compose orchestrates all services (frontend, backend, docling-serve, FalkorDB)
   6. Backend logs structured JSON with request_id correlation across pipeline stages
   7. GET /health endpoint returns backend operational status
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 01-01: [Brief description - to be created during plan-phase]
+- [ ] 01-01-PLAN.md - Backend foundation with FastAPI, health endpoint, structured logging
+- [ ] 01-02-PLAN.md - Frontend Better Auth setup with login/register pages
+- [ ] 01-03-PLAN.md - Backend JWT validation middleware for protected endpoints
+- [ ] 01-04-PLAN.md - Docker Compose orchestration with environment configuration
+- [ ] 01-05-PLAN.md - Frontend-backend auth integration and end-to-end verification
 
 ### Phase 2: Document Processing Pipeline
 **Goal**: High-quality document parsing with semantic chunking and structure preservation for accurate retrieval
@@ -124,11 +128,11 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure Foundation | 0/TBD | Not started | - |
+| 1. Infrastructure Foundation | 0/5 | Ready to execute | - |
 | 2. Document Processing Pipeline | 0/TBD | Not started | - |
 | 3. Core RAG with Hybrid Retrieval | 0/TBD | Not started | - |
 | 4. Knowledge Graph Integration | 0/TBD | Not started | - |
