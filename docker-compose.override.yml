@@ -13,6 +13,7 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000  # Browser requests use localhost
     command: npm run dev
 
   backend:
