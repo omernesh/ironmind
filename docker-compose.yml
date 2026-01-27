@@ -71,8 +71,7 @@ services:
     image: falkordb/falkordb:latest
     ports:
       - "6379:6379"
-    environment:
-      - REDIS_ARGS=--requirepass ${FALKORDB_PASSWORD:-}
+    command: --protected-mode no
     volumes:
       - falkordb-data:/data
     healthcheck:
