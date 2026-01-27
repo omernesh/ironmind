@@ -96,6 +96,7 @@ class ChunkMetadata(BaseModel):
     page_range: Optional[str] = Field(None, description="Page range (e.g., '5-7')")
     chunk_index: int = Field(..., description="Zero-based chunk position in document")
     token_count: int = Field(..., description="Approximate token count")
+    text: str = Field(..., description="Chunk text content")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Chunk creation timestamp")
 
     class Config:
