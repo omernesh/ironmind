@@ -9,11 +9,11 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 
 ### Authentication (AUTH)
 
-- [ ] **AUTH-01**: User can register with email and password via Better Auth
-- [ ] **AUTH-02**: User can log in and session persists across browser refresh
-- [ ] **AUTH-03**: Backend validates auth tokens/headers from frontend on all protected endpoints
-- [ ] **AUTH-04**: Backend extracts user_id from auth context for request tracking
-- [ ] **AUTH-05**: Unauthenticated requests to /api/ingest and /api/chat return HTTP 401
+- [x] **AUTH-01**: User can register with email and password via Better Auth
+- [x] **AUTH-02**: User can log in and session persists across browser refresh
+- [x] **AUTH-03**: Backend validates auth tokens/headers from frontend on all protected endpoints
+- [x] **AUTH-04**: Backend extracts user_id from auth context for request tracking
+- [x] **AUTH-05**: Unauthenticated requests to /api/ingest and /api/chat return HTTP 401
 
 ### Document Ingestion (INGEST)
 
@@ -78,10 +78,10 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 
 ### Observability (OBS)
 
-- [ ] **OBS-01**: System logs structured JSON to stdout (timestamp, level, service, request_id, user_id)
-- [ ] **OBS-02**: Logging middleware generates unique request_id per request
-- [ ] **OBS-03**: System logs incoming requests (path, method, user_id)
-- [ ] **OBS-04**: System logs outgoing responses (status_code, duration)
+- [x] **OBS-01**: System logs structured JSON to stdout (timestamp, level, service, request_id, user_id)
+- [x] **OBS-02**: Logging middleware generates unique request_id per request
+- [x] **OBS-03**: System logs incoming requests (path, method, user_id)
+- [x] **OBS-04**: System logs outgoing responses (status_code, duration)
 - [ ] **OBS-05**: System logs key events (doc_ingestion_started, doc_ingestion_completed, rag_query_started, rag_query_completed, llm_call_started, llm_call_completed)
 - [ ] **OBS-06**: System correlates log entries via request_id across pipeline stages
 - [ ] **OBS-07**: System tracks and logs component latencies (docling-serve, txtai retrieval, Mistral reranking, GPT-5-mini)
@@ -98,13 +98,13 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 
 ### Infrastructure (INFRA)
 
-- [ ] **INFRA-01**: Docker Compose orchestrates frontend, backend, docling-serve, FalkorDB, and txtai service
-- [ ] **INFRA-02**: Configuration via .env files (local vs cloud)
-- [ ] **INFRA-03**: Backend Dockerfile uses Python 3.11-slim (not Alpine)
+- [x] **INFRA-01**: Docker Compose orchestrates frontend, backend, docling-serve, FalkorDB, and txtai service
+- [x] **INFRA-02**: Configuration via .env files (local vs cloud)
+- [x] **INFRA-03**: Backend Dockerfile uses Python 3.11-slim (not Alpine)
 - [ ] **INFRA-04**: System deploys to Hetzner VPS with HTTPS termination
-- [ ] **INFRA-05**: GET /health endpoint returns backend status
+- [x] **INFRA-05**: GET /health endpoint returns backend status
 - [ ] **INFRA-06**: Frontend points to backend via environment-configurable base URL
-- [ ] **INFRA-07**: All secrets managed via environment variables (no hardcoding)
+- [x] **INFRA-07**: All secrets managed via environment variables (no hardcoding)
 - [ ] **INFRA-08**: docling-serve deployed as separate service with API endpoint
 - [ ] **INFRA-09**: FalkorDB deployed as graph database service
 - [ ] **INFRA-10**: Hetzner API key configured for cloud deployment automation
@@ -171,11 +171,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
+| AUTH-04 | Phase 1 | Complete |
+| AUTH-05 | Phase 1 | Complete |
 | INGEST-01 | Phase 2 | Pending |
 | INGEST-02 | Phase 2 | Pending |
 | INGEST-03 | Phase 2 | Pending |
@@ -219,10 +219,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KG-04 | Phase 4 | Pending |
 | KG-05 | Phase 4 | Pending |
 | KG-06 | Phase 4 | Pending |
-| OBS-01 | Phase 1 | Pending |
-| OBS-02 | Phase 1 | Pending |
-| OBS-03 | Phase 1 | Pending |
-| OBS-04 | Phase 1 | Pending |
+| OBS-01 | Phase 1 | Complete |
+| OBS-02 | Phase 1 | Complete |
+| OBS-03 | Phase 1 | Complete |
+| OBS-04 | Phase 1 | Complete |
 | OBS-05 | Phase 2 | Pending |
 | OBS-06 | Phase 3 | Pending |
 | OBS-07 | Phase 3 | Pending |
@@ -233,16 +233,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-05 | Phase 6 | Pending |
 | UI-06 | Phase 6 | Pending |
 | UI-07 | Phase 6 | Pending |
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
+| INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 6 | Pending |
-| INFRA-05 | Phase 1 | Pending |
+| INFRA-05 | Phase 1 | Complete |
 | INFRA-06 | Phase 6 | Pending |
-| INFRA-07 | Phase 1 | Pending |
+| INFRA-07 | Phase 1 | Complete |
 | INFRA-08 | Phase 2 | Pending |
 | INFRA-09 | Phase 4 | Pending |
-| INFRA-10 | Phase 1 | Pending |
+| INFRA-10 | Phase 6 | Deferred |
 | DOCS-01 | Phase 6 | Pending |
 | DOCS-02 | Phase 6 | Pending |
 | DOCS-03 | Phase 6 | Pending |
