@@ -8,6 +8,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 
 from app.config import settings
 from app.core.logging import configure_logging, get_logger
+from app.routers import health
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -67,7 +68,8 @@ app.add_middleware(
 # Add request logging middleware
 app.add_middleware(RequestLoggingMiddleware)
 
-# TODO: Include health router (Task 3)
+# Include routers
+app.include_router(health.router)
 
 
 @app.get("/")
