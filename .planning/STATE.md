@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Accurate, grounded answers from technical documentation with multi-source synthesis and transparent traceability
-**Current focus:** Phase 1 - Infrastructure Foundation
+**Current focus:** Phase 2 - Document Processing Pipeline
 
 ## Current Position
 
-Phase: 1 of 6 (Infrastructure Foundation)
-Plan: 5 of 5 in current phase
-Status: Phase complete
-Last activity: 2026-01-27 - Completed 01-05-PLAN.md (Frontend-Backend Auth Integration)
+Phase: 2 of 6 (Document Processing Pipeline)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-27 - Completed 02-01-PLAN.md (Document Storage Foundation)
 
-Progress: [█████░░░░░] 50%
+Progress: [█████▓░░░░] 55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 50.0 min (50 min)
-- Total execution time: 4.3 hours
+- Total plans completed: 6
+- Average duration: 42.5 min
+- Total execution time: 4.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
+| 02-document-processing-pipeline | 1/4 | 5m | 5m |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2.1h), 01-03 (11.7m), 01-02 (1.3h), 01-04 (14m), 01-05 (30m)
-- Trend: Consistent execution speed, complex integration tasks ~30-60min, setup tasks ~12-15min
+- Last 5 plans: 01-03 (11.7m), 01-02 (1.3h), 01-04 (14m), 01-05 (30m), 02-01 (5m)
+- Trend: Fast model/database setup tasks ~5-15min, integration tasks ~30-60min, complex setup ~1-2h
 
 *Updated after each plan completion*
 
@@ -88,6 +89,15 @@ Recent decisions affecting current work:
 - Implementation: WAL mode enabled for better SQLite concurrency
 - Implementation: Browser uses localhost:8000, server-side uses backend:8000 for API calls
 
+**From 02-01 execution:**
+- Implementation: ProcessingStatus enum with 6 states (Uploading, Parsing, Chunking, Indexing, Done, Failed)
+- Implementation: Processing log stored as JSON in SQLite for flexible stage tracking
+- Implementation: Path security via resolve() + is_relative_to() validation (prevents symlink/traversal attacks)
+- Implementation: Filename sanitization regex [^a-zA-Z0-9._-] with directory component stripping
+- Implementation: Directory structure /data/{raw,processed}/{user_id}/{doc_id}/ for isolation
+- Implementation: ChunkMetadata format doc_id-chunk-NNN for human-readable debugging
+- Implementation: aiosqlite with WAL mode for concurrent reads during processing
+
 ### Pending Todos
 
 None yet.
@@ -114,7 +124,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 20:08 (Phase 1 complete)
-Stopped at: Completed 01-05-PLAN.md (Frontend-Backend Auth Integration) - **PHASE 1 COMPLETE**
+Last session: 2026-01-27 23:50
+Stopped at: Completed 02-01-PLAN.md (Document Storage Foundation)
 Resume file: None
-Next action: Begin Phase 2 - Document Ingestion (planning or execution)
+Next action: Continue Phase 2 - Execute 02-02 (Upload API) or 02-03 (Docling Integration)
