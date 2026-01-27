@@ -13,6 +13,7 @@ from app.models.documents import Document, ProcessingStatus, ProcessingLogEntry
 from app.core.database import DocumentDatabase
 from app.services.storage import StorageService
 from app.services.docling_client import DoclingClient, DoclingError
+from app.services.pipeline import DocumentPipeline, calculate_progress, estimate_time_remaining
 
 logger = structlog.get_logger(__name__)
 
@@ -63,74 +64,13 @@ async def validate_file(file: UploadFile) -> tuple[str, int, bytes]:
 
 async def process_document_background(doc_id: str, user_id: str, file_path: Path):
     """
-    Background task to parse document via docling.
+    Background task to process document through complete pipeline.
 
-    NOTE: This is a placeholder implementation that only handles parsing.
-    Plan 02-04 will REPLACE this function with DocumentPipeline.process_document()
-    which handles the full pipeline: parse -> chunk -> index.
+    This replaces the placeholder parsing-only implementation from Plan 02-02.
+    Now uses DocumentPipeline for full flow: parse -> chunk -> index.
     """
-    db = DocumentDatabase(settings.database_path)
-    docling = DoclingClient()
-
-    try:
-        # Get document record
-        doc = await db.get_document(doc_id)
-        if not doc:
-            logger.error("document_not_found_for_processing", doc_id=doc_id)
-            return
-
-        # Update to PARSING
-        doc.status = ProcessingStatus.PARSING
-        doc.current_stage = "Parsing"
-        doc.processing_log.append(ProcessingLogEntry(
-            stage="Parsing",
-            started_at=datetime.utcnow()
-        ))
-        await db.update_document(doc)
-
-        logger.info("doc_ingestion_started", doc_id=doc_id, user_id=user_id)
-
-        # Parse via docling
-        parse_result = await docling.parse_document(file_path)
-
-        # Store parsed result
-        storage = StorageService(settings.DATA_DIR)
-        await storage.save_processed_json(user_id, doc_id, parse_result)
-
-        # Update processing log
-        doc.processing_log[-1].completed_at = datetime.utcnow()
-        doc.processing_log[-1].duration_ms = int(
-            (doc.processing_log[-1].completed_at - doc.processing_log[-1].started_at).total_seconds() * 1000
-        )
-
-        # Update status for next phase (chunking happens in 02-03)
-        doc.status = ProcessingStatus.CHUNKING
-        doc.current_stage = "Chunking"
-        doc.page_count = parse_result.get("page_count")
-        doc.processing_log.append(ProcessingLogEntry(
-            stage="Chunking",
-            started_at=datetime.utcnow()
-        ))
-        await db.update_document(doc)
-
-        logger.info("doc_parsing_completed",
-                   doc_id=doc_id,
-                   page_count=doc.page_count)
-
-    except DoclingError as e:
-        logger.error("doc_ingestion_failed", doc_id=doc_id, error=str(e))
-        doc = await db.get_document(doc_id)
-        if doc:
-            doc.status = ProcessingStatus.FAILED
-            doc.error = str(e)
-            await db.update_document(doc)
-    except Exception as e:
-        logger.error("doc_ingestion_unexpected_error", doc_id=doc_id, error=str(e), exc_info=True)
-        doc = await db.get_document(doc_id)
-        if doc:
-            doc.status = ProcessingStatus.FAILED
-            doc.error = f"Unexpected error: {str(e)}"
-            await db.update_document(doc)
+    pipeline = DocumentPipeline()
+    await pipeline.process_document(doc_id, user_id, file_path)
 
 
 @router.post("/upload")
@@ -212,6 +152,63 @@ async def list_documents(
     logger.info("documents_listed", user_id=user_id, count=len(documents))
 
     return documents
+
+
+@router.get("/{doc_id}/status")
+async def get_document_status(
+    doc_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Get document processing status with progress and time estimate.
+
+    Returns status values for INGEST-10:
+    - "Processing" (maps to Uploading, Parsing, Chunking, Indexing stages)
+    - "Indexed" (maps to Done status)
+    - "Failed" (maps to Failed status)
+
+    Note: Frontend UI to display this status is implemented in Phase 6.
+    """
+    db = DocumentDatabase(settings.database_path)
+    doc = await db.get_document(doc_id)
+
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    if doc.user_id != user_id:
+        raise HTTPException(403, "Not authorized to view this document")
+
+    # Map internal status to INGEST-10 status values
+    if doc.status == ProcessingStatus.DONE:
+        display_status = "Indexed"
+    elif doc.status == ProcessingStatus.FAILED:
+        display_status = "Failed"
+    else:
+        display_status = "Processing"
+
+    return {
+        "doc_id": doc.doc_id,
+        "filename": doc.filename,
+        "status": display_status,  # INGEST-10 compliant: Processing, Indexed, Failed
+        "internal_status": doc.status.value,  # Detailed status for debugging
+        "current_stage": doc.current_stage,
+        "progress_pct": calculate_progress(doc.status, doc.current_stage),
+        "estimated_time_remaining": estimate_time_remaining(doc.current_stage, doc.page_count),
+        "page_count": doc.page_count,
+        "chunk_count": doc.chunk_count,
+        "processing_log": [
+            {
+                "stage": entry.stage,
+                "started_at": entry.started_at.isoformat(),
+                "completed_at": entry.completed_at.isoformat() if entry.completed_at else None,
+                "duration_ms": entry.duration_ms
+            }
+            for entry in doc.processing_log
+        ],
+        "error": doc.error if doc.status == ProcessingStatus.FAILED else None,
+        "created_at": doc.created_at.isoformat(),
+        "updated_at": doc.updated_at.isoformat()
+    }
 
 
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
