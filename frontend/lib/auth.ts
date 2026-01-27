@@ -4,8 +4,14 @@ import Database from "better-sqlite3";
 // Database path - use /app/data in Docker, local path otherwise
 const dbPath = process.env.DATABASE_PATH || "./auth.db";
 
+// Initialize database with proper settings
+const db = new Database(dbPath);
+
+// Enable WAL mode for better concurrency
+db.pragma('journal_mode = WAL');
+
 export const auth = betterAuth({
-  database: new Database(dbPath),
+  database: db,
   secret: process.env.BETTER_AUTH_SECRET,  // Shared secret for JWT signing
   emailAndPassword: {
     enabled: true,
@@ -23,6 +29,10 @@ export const auth = betterAuth({
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ],
+  // Advanced options for database initialization
+  advanced: {
+    generateId: () => crypto.randomUUID(),
+  },
 });
 
 // Export auth type for use in other files
