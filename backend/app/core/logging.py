@@ -42,6 +42,10 @@ def configure_logging(environment: str = "production") -> None:
         cache_logger_on_first_use=True,
     )
 
+    # Bind service name to global context
+    from app.config import settings
+    structlog.contextvars.bind_contextvars(service=settings.SERVICE_NAME)
+
 
 def get_logger():
     """Get a structlog logger instance."""

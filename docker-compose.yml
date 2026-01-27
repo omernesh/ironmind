@@ -84,20 +84,20 @@ services:
       - ironmind-network
 
   # ==========================================================================
-  # Docling Serve (Document Processing) - Added for future phases
+  # Docling Serve (Document Processing)
   # ==========================================================================
-  # docling:
-  #   image: ds4sd/docling-serve:latest
-  #   ports:
-  #     - "5000:5000"
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 60s
-  #   networks:
-  #     - ironmind-network
+  docling:
+    image: ds4sd/docling-serve:latest
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - ironmind-network
 
 volumes:
   falkordb-data:
