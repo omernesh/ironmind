@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 2 of 6 (Document Processing Pipeline)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-27 - Completed 02-02-PLAN.md (Upload API and Docling Integration)
+Last activity: 2026-01-27 - Completed 02-03-PLAN.md (Semantic Chunking & txtai Indexing)
 
-Progress: [█████▓░░░░] 60%
+Progress: [█████▓░░░░] 65%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 39.4 min
-- Total execution time: 4.6 hours
+- Total plans completed: 8
+- Average duration: 37.5 min
+- Total execution time: 5.0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
-| 02-document-processing-pipeline | 2/4 | 17m | 8.5m |
+| 02-document-processing-pipeline | 3/4 | 42m | 14m |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (1.3h), 01-04 (14m), 01-05 (30m), 02-01 (5m), 02-02 (12m)
-- Trend: Fast model/API tasks ~5-15min, integration tasks ~30-60min, complex setup ~1-2h
+- Last 5 plans: 01-04 (14m), 01-05 (30m), 02-01 (5m), 02-02 (12m), 02-03 (25m)
+- Trend: Fast model/database tasks ~5-15min, chunking/indexing ~25min, integration tasks ~30-60min
 
 *Updated after each plan completion*
 
@@ -107,6 +107,18 @@ Recent decisions affecting current work:
 - Implementation: Retry only transient errors (timeout, 5xx); fail immediately on 4xx
 - Implementation: Fixed docling-serve Docker image path (quay.io/docling-project/docling-serve:v1.10.0)
 
+**From 02-03 execution:**
+- Implementation: tiktoken cl100k_base encoding for token counting (GPT-3.5/4 compatible)
+- Implementation: Target 1000 tokens per chunk with 15% overlap
+- Implementation: Section-boundary chunking (never splits mid-section)
+- Implementation: Merge small sections (<50 tokens), split large sections (>1500 tokens) at paragraph boundaries
+- Implementation: SHA-256 hash-based deduplication (lowercase + strip normalization)
+- Implementation: txtai content storage enabled (CRITICAL for metadata persistence)
+- Implementation: sentence-transformers/all-MiniLM-L6-v2 as fallback embeddings for POC
+- Implementation: SQLite backend for txtai index persistence
+- Implementation: User-based filtering for multi-tenant chunk isolation
+- Implementation: Config extra='ignore' to allow additional env vars without validation errors
+
 ### Pending Todos
 
 None yet.
@@ -133,7 +145,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 00:07
-Stopped at: Completed 02-02-PLAN.md (Upload API and Docling Integration)
+Last session: 2026-01-27 22:20
+Stopped at: Completed 02-03-PLAN.md (Semantic Chunking & txtai Indexing)
 Resume file: None
-Next action: Continue Phase 2 - Execute 02-03 (Semantic Chunking) or 02-04 (Pipeline Integration)
+Next action: Continue Phase 2 - Execute 02-04 (Pipeline Integration)
