@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 2 of 6 (Document Processing Pipeline)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-27 - Completed 02-01-PLAN.md (Document Storage Foundation)
+Last activity: 2026-01-27 - Completed 02-02-PLAN.md (Upload API and Docling Integration)
 
-Progress: [█████▓░░░░] 55%
+Progress: [█████▓░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 42.5 min
-- Total execution time: 4.4 hours
+- Total plans completed: 7
+- Average duration: 39.4 min
+- Total execution time: 4.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
-| 02-document-processing-pipeline | 1/4 | 5m | 5m |
+| 02-document-processing-pipeline | 2/4 | 17m | 8.5m |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (11.7m), 01-02 (1.3h), 01-04 (14m), 01-05 (30m), 02-01 (5m)
-- Trend: Fast model/database setup tasks ~5-15min, integration tasks ~30-60min, complex setup ~1-2h
+- Last 5 plans: 01-02 (1.3h), 01-04 (14m), 01-05 (30m), 02-01 (5m), 02-02 (12m)
+- Trend: Fast model/API tasks ~5-15min, integration tasks ~30-60min, complex setup ~1-2h
 
 *Updated after each plan completion*
 
@@ -98,6 +98,15 @@ Recent decisions affecting current work:
 - Implementation: ChunkMetadata format doc_id-chunk-NNN for human-readable debugging
 - Implementation: aiosqlite with WAL mode for concurrent reads during processing
 
+**From 02-02 execution:**
+- Implementation: Streaming file validation (read chunks, validate size without loading entire file)
+- Implementation: FastAPI BackgroundTasks for async document processing
+- Implementation: DoclingClient with exponential backoff retry (@backoff.on_exception decorator)
+- Implementation: httpx AsyncClient for docling-serve API integration
+- Implementation: 120s timeout for docling parsing (PDFs with OCR can take time)
+- Implementation: Retry only transient errors (timeout, 5xx); fail immediately on 4xx
+- Implementation: Fixed docling-serve Docker image path (quay.io/docling-project/docling-serve:v1.10.0)
+
 ### Pending Todos
 
 None yet.
@@ -106,7 +115,7 @@ None yet.
 
 **Phase 1 Risks:**
 
-- Docling integration requires Day 1 validation on actual aerospace documents
+- ~~Docling integration requires Day 1 validation on actual aerospace documents~~ **PARTIALLY RESOLVED:** Upload API and DoclingClient complete (02-02), pending docling-serve image download completion
 - ~~Better Auth configuration complexity may delay auth implementation~~ **RESOLVED:** Better Auth configured with SQLite (01-02)
 - ~~Docker Compose orchestration with 4+ services needs testing~~ **RESOLVED:** Docker Compose verified with all services healthy (01-04)
 - ~~End-to-end auth flow needs verification~~ **RESOLVED:** Complete auth flow verified in 01-05 (register -> login -> dashboard -> backend API -> logout)
@@ -124,7 +133,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 23:50
-Stopped at: Completed 02-01-PLAN.md (Document Storage Foundation)
+Last session: 2026-01-28 00:07
+Stopped at: Completed 02-02-PLAN.md (Upload API and Docling Integration)
 Resume file: None
-Next action: Continue Phase 2 - Execute 02-02 (Upload API) or 02-03 (Docling Integration)
+Next action: Continue Phase 2 - Execute 02-03 (Semantic Chunking) or 02-04 (Pipeline Integration)
