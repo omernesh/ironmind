@@ -23,6 +23,9 @@ aiofiles>=23.2.0
 # Text processing
 tiktoken>=0.5.0
 
+# RAG and embeddings
+txtai[pipeline]>=7.0.0
+
 # HTTP client with retry
 httpx>=0.25.0
 backoff>=2.2.0
