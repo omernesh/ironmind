@@ -59,8 +59,12 @@ class SemanticChunker:
 
         if not sections:
             logger.warning("no_sections_found", doc_id=doc_id)
-            # Fallback: treat entire text as one section
-            full_text = docling_output.get("text", "")
+            # Fallback: check for document.md_content or top-level text
+            full_text = ""
+            if "document" in docling_output:
+                full_text = docling_output["document"].get("md_content", "")
+            if not full_text:
+                full_text = docling_output.get("text", "")
             if full_text:
                 sections = [{"title": "Document", "text": full_text, "page_range": "1"}]
 
@@ -90,8 +94,15 @@ class SemanticChunker:
         """Extract sections from docling output format."""
         sections = []
 
+        # Check for docling v1.10.0 format (document.md_content)
+        if "document" in docling_output:
+            doc = docling_output["document"]
+            md_content = doc.get("md_content", "")
+            if md_content:
+                return self._parse_markdown_sections(md_content)
+
         # Docling may return different structures
-        # Try common formats
+        # Try common formats (fallback for other docling configurations)
         if "sections" in docling_output:
             for section in docling_output["sections"]:
                 sections.append({
@@ -110,6 +121,45 @@ class SemanticChunker:
                         "text": block.get("text", ""),
                         "page_range": str(page_num)
                     })
+
+        return sections
+
+    def _parse_markdown_sections(self, md_content: str) -> List[Dict]:
+        """Parse markdown content into sections by headings."""
+        import re
+
+        sections = []
+        # Match markdown headings (# Heading, ## Subheading, etc.)
+        heading_pattern = re.compile(r'^(#{1,6})\s+(.+)$', re.MULTILINE)
+
+        # Find all headings and their positions
+        headings = list(heading_pattern.finditer(md_content))
+
+        if not headings:
+            # No headings found - treat entire content as one section
+            return [{"title": "Document", "text": md_content.strip(), "page_range": "1"}]
+
+        for i, match in enumerate(headings):
+            title = match.group(2).strip()
+            start = match.end()
+
+            # End is either next heading or end of document
+            if i + 1 < len(headings):
+                end = headings[i + 1].start()
+            else:
+                end = len(md_content)
+
+            text = md_content[start:end].strip()
+
+            # Estimate page number (rough: 3000 chars per page)
+            page_estimate = max(1, (match.start() // 3000) + 1)
+
+            if text:  # Only add sections with content
+                sections.append({
+                    "title": title,
+                    "text": text,
+                    "page_range": str(page_estimate)
+                })
 
         return sections
 
