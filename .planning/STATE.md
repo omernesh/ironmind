@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 3 of 6 (Core RAG with Hybrid Retrieval)
-Plan: 1 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-28 - Completed 03-01-PLAN.md (Configuration and Data Models)
+Last activity: 2026-01-29 - Completed 03-02A-PLAN.md (Hybrid Search Capability)
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 29 min
-- Total execution time: 5.38 hours
+- Total plans completed: 12
+- Average duration: 25 min
+- Total execution time: 5.43 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [███████░░░] 73%
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
-| 03-core-rag-with-hybrid-retrieval | 1/5 | 3m | 3m |
+| 03-core-rag-with-hybrid-retrieval | 2/5 | 6m | 3m |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (12m), 02-03 (25m), 02-04 (15m), 02-05 (5m), 03-01 (3m)
-- Trend: Fast model/database tasks ~3-15min, chunking/indexing ~25min, gap closure/bug fixes ~5min
+- Last 5 plans: 02-03 (25m), 02-04 (15m), 02-05 (5m), 03-01 (3m), 03-02A (3m)
+- Trend: Fast model/database tasks ~3min, chunking/indexing ~25min, gap closure/bug fixes ~5min
 
 *Updated after each plan completion*
 
@@ -146,6 +146,14 @@ Recent decisions affecting current work:
 - Implementation: ChatRequest validation (1-2000 chars question, required user_id)
 - Implementation: Dependencies added: litellm>=1.0.0, openai>=1.0.0, redis>=5.0.0
 
+**From 03-02A execution:**
+- Implementation: Hybrid search enabled in TxtaiIndexer (hybrid=True with BM25 + semantic)
+- Implementation: OpenAI embeddings with local fallback (text-embedding-3-small when API key available)
+- Implementation: Normalized BM25 scoring (normalize=True for RRF-equivalent fusion)
+- Implementation: hybrid_search method with user filtering and threshold
+- Implementation: reindex_document method for clean re-ingestion (INDEX-05 compliance)
+- Implementation: Fetch 2x limit for post-filtering to ensure enough results after user_id + threshold filtering
+
 ### Pending Todos
 
 None yet.
@@ -170,7 +178,8 @@ None yet.
 **Phase 3 In Progress:**
 
 - Plan 03-01 complete: RAG configuration and chat models established
-- Ready for hybrid retrieval implementation (txtai BM25 + semantic search)
+- Plan 03-02A complete: Hybrid search capability with OpenAI embeddings
+- Ready for retrieval service implementation (03-02B)
 - API keys needed: OPENAI_API_KEY and DEEPINFRA_API_KEY (see 03-01-SUMMARY.md)
 
 **Phase 4 Risks (Research Flag):**
@@ -186,7 +195,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 23:32
-Stopped at: Completed 03-01-PLAN.md (Configuration and Data Models)
+Last session: 2026-01-29 01:39
+Stopped at: Completed 03-02A-PLAN.md (Hybrid Search Capability)
 Resume file: None
-Next action: Execute 03-02-PLAN.md (Hybrid Retrieval Service)
+Next action: Execute 03-02B-PLAN.md (Retrieval Service)
