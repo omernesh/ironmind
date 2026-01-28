@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 2 of 6 (Document Processing Pipeline)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-01-27 - Completed 02-03-PLAN.md (Semantic Chunking & txtai Indexing)
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-01-28 - Completed 02-04-PLAN.md (Pipeline Integration & Status Polling)
 
-Progress: [█████▓░░░░] 65%
+Progress: [██████░░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 37.5 min
-- Total execution time: 5.0 hours
+- Total plans completed: 9
+- Average duration: 35 min
+- Total execution time: 5.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
-| 02-document-processing-pipeline | 3/4 | 42m | 14m |
+| 02-document-processing-pipeline | 4/4 | 57m | 14m |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (14m), 01-05 (30m), 02-01 (5m), 02-02 (12m), 02-03 (25m)
-- Trend: Fast model/database tasks ~5-15min, chunking/indexing ~25min, integration tasks ~30-60min
+- Last 5 plans: 01-05 (30m), 02-01 (5m), 02-02 (12m), 02-03 (25m), 02-04 (15m)
+- Trend: Fast model/database tasks ~5-15min, chunking/indexing ~25min, integration tasks ~15-30min
 
 *Updated after each plan completion*
 
@@ -119,6 +119,15 @@ Recent decisions affecting current work:
 - Implementation: User-based filtering for multi-tenant chunk isolation
 - Implementation: Config extra='ignore' to allow additional env vars without validation errors
 
+**From 02-04 execution:**
+- Implementation: DocumentPipeline orchestration pattern (single service coordinates parse -> chunk -> index)
+- Implementation: Status API returns INGEST-10 compliant values (Processing, Indexed, Failed) with internal_status for debugging
+- Implementation: Progress percentage via stage weights: Uploading (10%), Parsing (40%), Chunking (20%), Indexing (30%)
+- Implementation: Time estimation ~2 sec/page baseline with remaining work from stage weights
+- Implementation: doc_ingestion event logging (started, completed, failed) with metrics
+- Implementation: Processing log as structured JSON with stage timing data
+- Implementation: Failure handling cleans up files (delete raw and processed on error)
+
 ### Pending Todos
 
 None yet.
@@ -127,10 +136,16 @@ None yet.
 
 **Phase 1 Risks:**
 
-- ~~Docling integration requires Day 1 validation on actual aerospace documents~~ **PARTIALLY RESOLVED:** Upload API and DoclingClient complete (02-02), pending docling-serve image download completion
+- ~~Docling integration requires Day 1 validation on actual aerospace documents~~ **RESOLVED:** Complete ingestion pipeline verified end-to-end in 02-04
 - ~~Better Auth configuration complexity may delay auth implementation~~ **RESOLVED:** Better Auth configured with SQLite (01-02)
 - ~~Docker Compose orchestration with 4+ services needs testing~~ **RESOLVED:** Docker Compose verified with all services healthy (01-04)
 - ~~End-to-end auth flow needs verification~~ **RESOLVED:** Complete auth flow verified in 01-05 (register -> login -> dashboard -> backend API -> logout)
+
+**Phase 2 Complete:**
+
+- Document processing pipeline fully operational: upload -> parse -> chunk -> index
+- Status polling API ready for frontend integration (Phase 6)
+- INGEST-10 backend contract complete (UI display is Phase 6 scope)
 
 **Phase 4 Risks (Research Flag):**
 
@@ -145,7 +160,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 22:20
-Stopped at: Completed 02-03-PLAN.md (Semantic Chunking & txtai Indexing)
+Last session: 2026-01-28 18:21
+Stopped at: Completed 02-04-PLAN.md (Pipeline Integration & Status Polling) - Phase 2 complete
 Resume file: None
-Next action: Continue Phase 2 - Execute 02-04 (Pipeline Integration)
+Next action: Plan Phase 3 (RAG Query Pipeline)
