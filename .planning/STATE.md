@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 3 of 6 (Core RAG with Hybrid Retrieval)
-Plan: 4 of 5 in current phase
+Plan: 5 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 03-03-PLAN.md (Reranker Service)
+Last activity: 2026-01-29 - Completed 03-02B-PLAN.md (HybridRetriever Service)
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: 22 min
-- Total execution time: 5.61 hours
+- Total plans completed: 15
+- Average duration: 21 min
+- Total execution time: 5.64 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [████████░░] 80%
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
-| 03-core-rag-with-hybrid-retrieval | 4/5 | 17m | 4m |
+| 03-core-rag-with-hybrid-retrieval | 5/5 | 19m | 4m |
 
 **Recent Trend:**
-- Last 5 plans: 02-05 (5m), 03-01 (3m), 03-02A (3m), 03-04 (5m), 03-03 (6m)
-- Trend: Fast model/API tasks ~3-6min, chunking/indexing ~25min, gap closure/bug fixes ~5min
+- Last 5 plans: 03-01 (3m), 03-02A (3m), 03-04 (5m), 03-03 (6m), 03-02B (2m)
+- Trend: RAG service tasks ~2-6min (fast pattern establishment)
 
 *Updated after each plan completion*
 
@@ -171,6 +171,13 @@ Recent decisions affecting current work:
 - Implementation: Score distribution logging (min/max/avg) for performance monitoring
 - Implementation: Latency tracking for reranking stage observability
 
+**From 03-02B execution:**
+- Implementation: HybridRetriever service wraps indexer.hybrid_search() for RAG abstraction
+- Implementation: Query preprocessing with aerospace acronym expansion (UAV, GPS, IMU, etc.)
+- Implementation: Structured response format with chunks, count, latency_ms, diagnostics
+- Implementation: Score statistics (min/max/avg) for retrieval performance monitoring
+- Implementation: 15 aerospace/defense domain acronyms in ACRONYM_MAP for query enhancement
+
 ### Pending Todos
 
 None yet.
@@ -192,13 +199,14 @@ None yet.
 - Status polling API ready for frontend integration (Phase 6)
 - INGEST-10 backend contract complete (UI display is Phase 6 scope)
 
-**Phase 3 In Progress:**
+**Phase 3 Complete:**
 
 - Plan 03-01 complete: RAG configuration and chat models established
 - Plan 03-02A complete: Hybrid search capability with OpenAI embeddings
+- Plan 03-02B complete: HybridRetriever service with query preprocessing
 - Plan 03-03 complete: Reranker service with DeepInfra Qwen3-Reranker-0.6B
 - Plan 03-04 complete: Answer generation service with GPT-5-mini
-- Ready for chat API endpoint (03-05) - final plan in Phase 3
+- Ready for chat API endpoint (03-05) - RAG pipeline services complete
 - API keys needed: OPENAI_API_KEY and DEEPINFRA_API_KEY (see 03-01-SUMMARY.md)
 
 **Phase 4 Risks (Research Flag):**
@@ -214,7 +222,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29 01:43
-Stopped at: Completed 03-03-PLAN.md (Reranker Service)
+Last session: 2026-01-29 01:49
+Stopped at: Completed 03-02B-PLAN.md (HybridRetriever Service)
 Resume file: None
-Next action: Execute 03-05-PLAN.md (Chat API Endpoint) - final plan in Phase 3
+Next action: Execute 03-05-PLAN.md (Chat API Endpoint) - orchestrate retriever → reranker → generator pipeline
