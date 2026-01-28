@@ -51,11 +51,11 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 - [ ] **RETRIEVAL-01**: System retrieves top-K chunks via txtai vector embeddings search (text-embedding-3-small)
 - [ ] **RETRIEVAL-02**: System retrieves top-K chunks via BM25 keyword search
 - [ ] **RETRIEVAL-03**: System fuses results using Reciprocal Rank Fusion (RRF)
-- [ ] **RETRIEVAL-04**: System applies Mistral rerank model (via DeepInfra API) to fused results
+- [ ] **RETRIEVAL-04**: System applies Qwen3-Reranker model (via DeepInfra API) to fused results
 - [ ] **RETRIEVAL-05**: Retrieval filters by user_id to isolate documents per user
 - [ ] **RETRIEVAL-06**: System logs retrieval diagnostics (embedding scores, BM25 scores, RRF ranks, reranker scores)
 - [ ] **RETRIEVAL-07**: Hybrid retrieval weights are configurable via environment (EMBED_WEIGHT, BM25_WEIGHT)
-- [ ] **RETRIEVAL-08**: Mistral reranker configured via environment (RERANK_PROVIDER=deepinfra, RERANK_API_KEY)
+- [ ] **RETRIEVAL-08**: Qwen3-Reranker configured via environment (RERANK_PROVIDER=deepinfra, RERANK_MODEL=Qwen/Qwen3-Reranker-0.6B, DEEPINFRA_API_KEY)
 
 ### Chat & QA (CHAT)
 
@@ -84,7 +84,7 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 - [x] **OBS-04**: System logs outgoing responses (status_code, duration)
 - [x] **OBS-05**: System logs key events (doc_ingestion_started, doc_ingestion_completed, rag_query_started, rag_query_completed, llm_call_started, llm_call_completed)
 - [ ] **OBS-06**: System correlates log entries via request_id across pipeline stages
-- [ ] **OBS-07**: System tracks and logs component latencies (docling-serve, txtai retrieval, Mistral reranking, GPT-5-mini)
+- [ ] **OBS-07**: System tracks and logs component latencies (docling-serve, txtai retrieval, Qwen reranking, GPT-5-mini)
 
 ### UI & UX (UI)
 
@@ -269,7 +269,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 5 has no explicit requirements but enhances multi-source synthesis capabilities (CHAT-06) and citation quality (CHAT-05)
 - Phase 3 is the largest phase (26 requirements) covering indexing, retrieval, chat, and LLM integration as coherent RAG pipeline
 - All authentication requirements front-loaded to Phase 1 for security-first approach
+- RETRIEVAL-04 and RETRIEVAL-08 updated 2026-01-28: Research confirmed Mistral does NOT have a dedicated reranking model. DeepInfra uses Qwen3-Reranker (not Mistral). Requirements updated to match actual available technology.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 after roadmap traceability mapping*
+*Last updated: 2026-01-28 after reranker model correction (Qwen3 replaces Mistral)*
