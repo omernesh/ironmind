@@ -4,6 +4,8 @@ from .pipeline import DocumentPipeline, calculate_progress, estimate_time_remain
 from .docling_client import DoclingClient, DoclingError, DoclingParseError
 from .chunker import SemanticChunker
 from .indexer import TxtaiIndexer
+from .generator import Generator, SYSTEM_PROMPT
+from .reranker import Reranker
 
 __all__ = [
     "StorageService",
@@ -15,4 +17,7 @@ __all__ = [
     "DoclingParseError",
     "SemanticChunker",
     "TxtaiIndexer",
+    "Generator",
+    "SYSTEM_PROMPT",
+    "Reranker",
 ]
