@@ -57,7 +57,7 @@ class DoclingClient:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             with open(file_path, 'rb') as f:
                 content_type = self._get_content_type(file_path)
-                files = {'file': (file_path.name, f, content_type)}
+                files = {'files': (file_path.name, f, content_type)}
 
                 try:
                     response = await client.post(

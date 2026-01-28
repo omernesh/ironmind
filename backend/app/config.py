@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # Document Processing
     DATA_DIR: str = "/app/data"
-    DOCLING_URL: str = "http://docling:5000"
+    DOCLING_URL: str = "http://docling:5001"
     MAX_FILE_SIZE_MB: int = 10
     MAX_DOCUMENTS_PER_USER: int = 10
 

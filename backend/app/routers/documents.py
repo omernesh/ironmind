@@ -25,7 +25,8 @@ router = APIRouter(
 # File validation constants
 ALLOWED_TYPES = {
     "application/pdf": "pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx"
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/msword": "doc"
 }
 MAX_SIZE = settings.MAX_FILE_SIZE_MB * 1024 * 1024
 
@@ -35,23 +36,18 @@ async def validate_file(file: UploadFile) -> tuple[str, int, bytes]:
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed: PDF, DOCX"
+            detail=f"Invalid file type. Allowed: PDF, DOCX, DOC"
         )
 
-    # Read chunks to check size without loading entire file
-    size = 0
-    chunks = []
-    async for chunk in file.stream():
-        size += len(chunk)
-        if size > MAX_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds {settings.MAX_FILE_SIZE_MB}MB limit"
-            )
-        chunks.append(chunk)
+    # Read file content and check size
+    content = await file.read()
+    size = len(content)
 
-    # Combine chunks
-    content = b''.join(chunks)
+    if size > MAX_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds {settings.MAX_FILE_SIZE_MB}MB limit"
+        )
     file_type = ALLOWED_TYPES[file.content_type]
 
     logger.info("file_validated",

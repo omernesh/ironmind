@@ -23,8 +23,11 @@ aiofiles>=23.2.0
 # Text processing
 tiktoken>=0.5.0
 
-# RAG and embeddings
-txtai[pipeline]>=7.0.0
+# RAG and embeddings (CPU-only, no CUDA dependencies)
+# Install CPU-only torch first to avoid CUDA downloads
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.4
+txtai>=7.0.0
 
 # HTTP client with retry
 httpx>=0.25.0

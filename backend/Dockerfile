@@ -14,6 +14,10 @@ COPY app/ ./app/
 
 # Create non-root user for security
 RUN useradd --create-home appuser
+
+# Create data directory and set ownership
+RUN mkdir -p /app/data && chown appuser:appuser /app/data
+
 USER appuser
 
 # Expose port
