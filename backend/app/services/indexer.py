@@ -102,7 +102,12 @@ class TxtaiIndexer:
         return len(chunks)
 
     def delete_document_chunks(self, doc_id: str) -> int:
-        """Delete all chunks for a document."""
+        """
+        Delete all chunks for a document.
+
+        Works with both hybrid and non-hybrid indices.
+        When hybrid search is enabled, clears both semantic and BM25 indices.
+        """
         # Query for all chunks with this doc_id
         try:
             results = self.embeddings.search(
@@ -120,6 +125,40 @@ class TxtaiIndexer:
             logger.warning("delete_chunks_failed", doc_id=doc_id, error=str(e))
 
         return 0
+
+    def reindex_document(
+        self,
+        chunks: List[ChunkMetadata],
+        user_id: str,
+        doc_id: str
+    ) -> int:
+        """
+        Re-index a document, removing old chunks first.
+
+        Ensures INDEX-05: Re-ingesting same document updates cleanly without duplication.
+
+        Args:
+            chunks: New chunks to index
+            user_id: User ID
+            doc_id: Document ID
+
+        Returns:
+            Number of chunks indexed
+        """
+        # Delete existing chunks for this document
+        deleted = self.delete_document_chunks(doc_id)
+        if deleted > 0:
+            logger.info("old_chunks_deleted", doc_id=doc_id, count=deleted)
+
+        # Index new chunks
+        indexed = self.index_chunks(chunks, user_id, doc_id)
+
+        logger.info("document_reindexed",
+                   doc_id=doc_id,
+                   deleted=deleted,
+                   indexed=indexed)
+
+        return indexed
 
     def search(
         self,
