@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 Phase: 3 of 6 (Core RAG with Hybrid Retrieval)
 Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 03-04-PLAN.md (Answer Generation Service)
+Last activity: 2026-01-29 - Completed 03-03-PLAN.md (Reranker Service)
 
 Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: 23 min
-- Total execution time: 5.51 hours
+- Total plans completed: 14
+- Average duration: 22 min
+- Total execution time: 5.61 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [████████░░] 80%
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
-| 03-core-rag-with-hybrid-retrieval | 3/5 | 11m | 4m |
+| 03-core-rag-with-hybrid-retrieval | 4/5 | 17m | 4m |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (15m), 02-05 (5m), 03-01 (3m), 03-02A (3m), 03-04 (5m)
-- Trend: Fast model/API tasks ~3-5min, chunking/indexing ~25min, gap closure/bug fixes ~5min
+- Last 5 plans: 02-05 (5m), 03-01 (3m), 03-02A (3m), 03-04 (5m), 03-03 (6m)
+- Trend: Fast model/API tasks ~3-6min, chunking/indexing ~25min, gap closure/bug fixes ~5min
 
 *Updated after each plan completion*
 
@@ -163,6 +163,14 @@ Recent decisions affecting current work:
 - Implementation: Citation objects with 200-char snippets for previews
 - Implementation: Diagnostics tracking (latency_ms, tokens_used) for observability
 
+**From 03-03 execution:**
+- Implementation: Reranker service with DeepInfra Qwen3-Reranker-0.6B integration
+- Implementation: Cross-encoder reranking for 30-50% precision boost over semantic-only retrieval
+- Implementation: Graceful error handling (missing API key → skip, API error → fallback to input order)
+- Implementation: Rerank score and rank metadata attached to chunks for diagnostics
+- Implementation: Score distribution logging (min/max/avg) for performance monitoring
+- Implementation: Latency tracking for reranking stage observability
+
 ### Pending Todos
 
 None yet.
@@ -188,8 +196,9 @@ None yet.
 
 - Plan 03-01 complete: RAG configuration and chat models established
 - Plan 03-02A complete: Hybrid search capability with OpenAI embeddings
+- Plan 03-03 complete: Reranker service with DeepInfra Qwen3-Reranker-0.6B
 - Plan 03-04 complete: Answer generation service with GPT-5-mini
-- Ready for reranker (03-03) and chat API endpoint (03-05)
+- Ready for chat API endpoint (03-05) - final plan in Phase 3
 - API keys needed: OPENAI_API_KEY and DEEPINFRA_API_KEY (see 03-01-SUMMARY.md)
 
 **Phase 4 Risks (Research Flag):**
@@ -205,7 +214,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29 01:41
-Stopped at: Completed 03-04-PLAN.md (Answer Generation Service)
+Last session: 2026-01-29 01:43
+Stopped at: Completed 03-03-PLAN.md (Reranker Service)
 Resume file: None
-Next action: Execute 03-03-PLAN.md (Reranker Service) or 03-05-PLAN.md (Chat API Endpoint)
+Next action: Execute 03-05-PLAN.md (Chat API Endpoint) - final plan in Phase 3
