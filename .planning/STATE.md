@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 2 of 6 (Document Processing Pipeline)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-01-28 - Completed 02-04-PLAN.md (Pipeline Integration & Status Polling)
+Plan: 5 of 5 in current phase
+Status: Phase complete (gap closure)
+Last activity: 2026-01-28 - Completed 02-05-PLAN.md (Docling Format Gap Closure)
 
-Progress: [██████░░░░] 70%
+Progress: [██████░░░░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 35 min
-- Total execution time: 5.25 hours
+- Total plans completed: 10
+- Average duration: 32 min
+- Total execution time: 5.33 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
-| 02-document-processing-pipeline | 4/4 | 57m | 14m |
+| 02-document-processing-pipeline | 5/5 | 62m | 12m |
 
 **Recent Trend:**
-- Last 5 plans: 01-05 (30m), 02-01 (5m), 02-02 (12m), 02-03 (25m), 02-04 (15m)
-- Trend: Fast model/database tasks ~5-15min, chunking/indexing ~25min, integration tasks ~15-30min
+- Last 5 plans: 02-01 (5m), 02-02 (12m), 02-03 (25m), 02-04 (15m), 02-05 (5m)
+- Trend: Fast model/database tasks ~5-15min, chunking/indexing ~25min, gap closure/bug fixes ~5min
 
 *Updated after each plan completion*
 
@@ -128,6 +128,12 @@ Recent decisions affecting current work:
 - Implementation: Processing log as structured JSON with stage timing data
 - Implementation: Failure handling cleans up files (delete raw and processed on error)
 
+**From 02-05 execution:**
+- Implementation: Markdown heading pattern matching (#{1,6}) for section extraction from docling md_content
+- Implementation: Character position-based page estimation (~3000 chars/page heuristic)
+- Implementation: Multi-format extraction fallback chain (document.md_content → sections → pages → text)
+- Implementation: Format adapter pattern for docling v1.10.0 output compatibility
+
 ### Pending Todos
 
 None yet.
@@ -141,11 +147,14 @@ None yet.
 - ~~Docker Compose orchestration with 4+ services needs testing~~ **RESOLVED:** Docker Compose verified with all services healthy (01-04)
 - ~~End-to-end auth flow needs verification~~ **RESOLVED:** Complete auth flow verified in 01-05 (register -> login -> dashboard -> backend API -> logout)
 
-**Phase 2 Complete:**
+**Phase 2 Complete (Gap Closure Verified):**
 
 - Document processing pipeline fully operational: upload -> parse -> chunk -> index
+- Format mismatch resolved: chunker now extracts sections from docling md_content format
+- Semantic chunking produces actual chunks (verified: 4-5 chunks from test documents)
 - Status polling API ready for frontend integration (Phase 6)
 - INGEST-10 backend contract complete (UI display is Phase 6 scope)
+- Ready for Phase 3: RAG query pipeline with txtai hybrid search
 
 **Phase 4 Risks (Research Flag):**
 
@@ -160,7 +169,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 18:21
-Stopped at: Completed 02-04-PLAN.md (Pipeline Integration & Status Polling) - Phase 2 complete
+Last session: 2026-01-28 20:14
+Stopped at: Completed 02-05-PLAN.md (Docling Format Gap Closure) - Phase 2 fully verified
 Resume file: None
 Next action: Plan Phase 3 (RAG Query Pipeline)
