@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 ## Current Position
 
-Phase: 2 of 6 (Document Processing Pipeline)
-Plan: 5 of 5 in current phase
-Status: Complete + Verified (6/6 must-haves passed)
-Last activity: 2026-01-28 - Completed 02-05-PLAN.md (Docling Format Gap Closure)
+Phase: 3 of 6 (Core RAG with Hybrid Retrieval)
+Plan: 1 of 5 in current phase
+Status: In progress
+Last activity: 2026-01-28 - Completed 03-01-PLAN.md (Configuration and Data Models)
 
-Progress: [██████░░░░] 71%
+Progress: [███████░░░] 73%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 32 min
-- Total execution time: 5.33 hours
+- Total plans completed: 11
+- Average duration: 29 min
+- Total execution time: 5.38 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [██████░░░░] 71%
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
+| 03-core-rag-with-hybrid-retrieval | 1/5 | 3m | 3m |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (5m), 02-02 (12m), 02-03 (25m), 02-04 (15m), 02-05 (5m)
-- Trend: Fast model/database tasks ~5-15min, chunking/indexing ~25min, gap closure/bug fixes ~5min
+- Last 5 plans: 02-02 (12m), 02-03 (25m), 02-04 (15m), 02-05 (5m), 03-01 (3m)
+- Trend: Fast model/database tasks ~3-15min, chunking/indexing ~25min, gap closure/bug fixes ~5min
 
 *Updated after each plan completion*
 
@@ -134,6 +135,17 @@ Recent decisions affecting current work:
 - Implementation: Multi-format extraction fallback chain (document.md_content → sections → pages → text)
 - Implementation: Format adapter pattern for docling v1.10.0 output compatibility
 
+**From 03-01 execution:**
+- Implementation: OpenAI text-embedding-3-small for embeddings ($0.02/1M tokens, 1536 dimensions)
+- Implementation: DeepInfra Qwen/Qwen3-Reranker-0.6B for reranking (30-50% precision boost)
+- Implementation: OpenAI GPT-5-mini for generation (latest model, 0.1 temperature for factual accuracy)
+- Implementation: Three-stage retrieval funnel (25 initial → 12 reranked → 10 to LLM)
+- Implementation: Hybrid search 50/50 weight (HYBRID_WEIGHT=0.5 for BM25 + semantic)
+- Implementation: Citation model with doc_id, filename, page_range, snippet for traceability
+- Implementation: DiagnosticInfo model for latency tracking (retrieval, rerank, generation stages)
+- Implementation: ChatRequest validation (1-2000 chars question, required user_id)
+- Implementation: Dependencies added: litellm>=1.0.0, openai>=1.0.0, redis>=5.0.0
+
 ### Pending Todos
 
 None yet.
@@ -154,7 +166,12 @@ None yet.
 - Semantic chunking produces actual chunks (verified: 4-5 chunks from test documents)
 - Status polling API ready for frontend integration (Phase 6)
 - INGEST-10 backend contract complete (UI display is Phase 6 scope)
-- Ready for Phase 3: RAG query pipeline with txtai hybrid search
+
+**Phase 3 In Progress:**
+
+- Plan 03-01 complete: RAG configuration and chat models established
+- Ready for hybrid retrieval implementation (txtai BM25 + semantic search)
+- API keys needed: OPENAI_API_KEY and DEEPINFRA_API_KEY (see 03-01-SUMMARY.md)
 
 **Phase 4 Risks (Research Flag):**
 
@@ -169,7 +186,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 20:22
-Stopped at: Phase 2 complete - All plans executed, gaps closed, verification passed (6/6 must-haves)
+Last session: 2026-01-28 23:32
+Stopped at: Completed 03-01-PLAN.md (Configuration and Data Models)
 Resume file: None
-Next action: Plan Phase 3 (Core RAG with Hybrid Retrieval)
+Next action: Execute 03-02-PLAN.md (Hybrid Retrieval Service)
