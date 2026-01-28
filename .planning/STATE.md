@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 3 of 6 (Core RAG with Hybrid Retrieval)
-Plan: 2 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 03-02A-PLAN.md (Hybrid Search Capability)
+Last activity: 2026-01-29 - Completed 03-04-PLAN.md (Answer Generation Service)
 
 Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 25 min
-- Total execution time: 5.43 hours
+- Total plans completed: 13
+- Average duration: 23 min
+- Total execution time: 5.51 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [████████░░] 80%
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
-| 03-core-rag-with-hybrid-retrieval | 2/5 | 6m | 3m |
+| 03-core-rag-with-hybrid-retrieval | 3/5 | 11m | 4m |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (25m), 02-04 (15m), 02-05 (5m), 03-01 (3m), 03-02A (3m)
-- Trend: Fast model/database tasks ~3min, chunking/indexing ~25min, gap closure/bug fixes ~5min
+- Last 5 plans: 02-04 (15m), 02-05 (5m), 03-01 (3m), 03-02A (3m), 03-04 (5m)
+- Trend: Fast model/API tasks ~3-5min, chunking/indexing ~25min, gap closure/bug fixes ~5min
 
 *Updated after each plan completion*
 
@@ -154,6 +154,15 @@ Recent decisions affecting current work:
 - Implementation: reindex_document method for clean re-ingestion (INDEX-05 compliance)
 - Implementation: Fetch 2x limit for post-filtering to ensure enough results after user_id + threshold filtering
 
+**From 03-04 execution:**
+- Implementation: Generator service using AsyncOpenAI with GPT-5-mini (30s timeout)
+- Implementation: Grounded prompt with SYSTEM_PROMPT enforcing "ONLY from documents" responses
+- Implementation: Context building with numbered citations [N: filename, p.X]
+- Implementation: Empty chunks return user-friendly "cannot find information" message
+- Implementation: Conversation history support (last 10 messages = 5 turns)
+- Implementation: Citation objects with 200-char snippets for previews
+- Implementation: Diagnostics tracking (latency_ms, tokens_used) for observability
+
 ### Pending Todos
 
 None yet.
@@ -179,7 +188,8 @@ None yet.
 
 - Plan 03-01 complete: RAG configuration and chat models established
 - Plan 03-02A complete: Hybrid search capability with OpenAI embeddings
-- Ready for retrieval service implementation (03-02B)
+- Plan 03-04 complete: Answer generation service with GPT-5-mini
+- Ready for reranker (03-03) and chat API endpoint (03-05)
 - API keys needed: OPENAI_API_KEY and DEEPINFRA_API_KEY (see 03-01-SUMMARY.md)
 
 **Phase 4 Risks (Research Flag):**
@@ -195,7 +205,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-29 01:39
-Stopped at: Completed 03-02A-PLAN.md (Hybrid Search Capability)
+Last session: 2026-01-29 01:41
+Stopped at: Completed 03-04-PLAN.md (Answer Generation Service)
 Resume file: None
-Next action: Execute 03-02B-PLAN.md (Retrieval Service)
+Next action: Execute 03-03-PLAN.md (Reranker Service) or 03-05-PLAN.md (Chat API Endpoint)
