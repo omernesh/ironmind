@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure Foundation** - Docker setup, auth, health checks, basic FastAPI structure
 - [x] **Phase 2: Document Processing Pipeline** - Docling integration, semantic chunking, metadata preservation
-- [ ] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Mistral reranking, basic Q&A
+- [ ] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Qwen reranking, basic Q&A
 - [ ] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
 - [ ] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
 - [ ] **Phase 6: Frontend Integration & Deployment** - IRONMIND UI, document upload, source traceability, Hetzner deployment
@@ -63,23 +63,27 @@ Plans:
 - [x] 02-05-PLAN.md - [GAP CLOSURE] Fix docling output format mismatch for chunking
 
 ### Phase 3: Core RAG with Hybrid Retrieval
-**Goal**: Working end-to-end RAG pipeline with hybrid retrieval (semantic + BM25) and Mistral reranking for technical document Q&A
+**Goal**: Working end-to-end RAG pipeline with hybrid retrieval (semantic + BM25) and Qwen reranking for technical document Q&A
 **Depends on**: Phase 2
 **Requirements**: INDEX-01, INDEX-02, INDEX-03, INDEX-04, INDEX-05, INDEX-06, RETRIEVAL-01, RETRIEVAL-02, RETRIEVAL-03, RETRIEVAL-04, RETRIEVAL-05, RETRIEVAL-06, RETRIEVAL-07, RETRIEVAL-08, CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, CHAT-06, CHAT-07, CHAT-08, CHAT-09, LLM-01, LLM-02, LLM-03, LLM-04, OBS-06, OBS-07
 **Success Criteria** (what must be TRUE):
   1. System indexes chunks in txtai with OpenAI text-embedding-3-small embeddings and BM25 sparse index
   2. System retrieves top-K chunks via dual-channel search (txtai semantic + BM25) with Reciprocal Rank Fusion
-  3. System applies Mistral rerank model via DeepInfra API to fused results
+  3. System applies Qwen3-Reranker model via DeepInfra API to fused results
   4. User can ask natural language questions and receive answers with source citations (doc_id, filename, snippet, page_range)
   5. System calls OpenAI GPT-5-mini for answer generation with grounding instruction
   6. Multi-source answers synthesize information across documents
   7. Query response time is under 10 seconds (target 5-8 seconds)
   8. System handles 2-3 concurrent users without degradation
   9. System logs retrieval diagnostics (embedding scores, BM25 scores, RRF ranks, reranker scores) and component latencies
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 03-01: [Brief description - to be created during plan-phase]
+- [ ] 03-01-PLAN.md - Configuration and chat data models for RAG pipeline
+- [ ] 03-02-PLAN.md - Hybrid retriever with BM25 + semantic fusion (RRF)
+- [ ] 03-03-PLAN.md - Reranker service using DeepInfra Qwen3-Reranker
+- [ ] 03-04-PLAN.md - Answer generator with GPT-5-mini and citations
+- [ ] 03-05-PLAN.md - Chat endpoint with full pipeline orchestration
 
 ### Phase 4: Knowledge Graph Integration
 **Goal**: Graph-aware retrieval enabling multi-component questions and relationship-based reasoning
@@ -138,7 +142,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
 | 2. Document Processing Pipeline | 5/5 | Complete | 2026-01-28 |
-| 3. Core RAG with Hybrid Retrieval | 0/TBD | Not started | - |
+| 3. Core RAG with Hybrid Retrieval | 0/5 | Planned | - |
 | 4. Knowledge Graph Integration | 0/TBD | Not started | - |
 | 5. Multi-Source Synthesis | 0/TBD | Not started | - |
 | 6. Frontend Integration & Deployment | 0/TBD | Not started | - |
