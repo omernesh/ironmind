@@ -17,16 +17,16 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 
 ### Document Ingestion (INGEST)
 
-- [ ] **INGEST-01**: User can upload DOCX/PDF documents via IRONMIND interface
-- [ ] **INGEST-02**: System accepts up to 10 documents per user with configurable size limits
-- [ ] **INGEST-03**: Backend calls docling-serve API to parse and extract structured content from uploads
-- [ ] **INGEST-04**: System preserves document structure (sections, headings, page numbers) during parsing
-- [ ] **INGEST-05**: System uses semantic chunking (not fixed-size) to preserve context boundaries
-- [ ] **INGEST-06**: Each chunk includes metadata (doc_id, filename, page_range, section_title, user_id)
-- [ ] **INGEST-07**: System stores original files to /data/raw/{user_id}/{doc_id}
-- [ ] **INGEST-08**: System stores processed output to /data/processed/{user_id}/{doc_id}
-- [ ] **INGEST-09**: Upload endpoint returns per-file status (filename, status, error if any)
-- [ ] **INGEST-10**: User can see document status in UI (Processing, Indexed, Failed)
+- [x] **INGEST-01**: User can upload DOCX/PDF documents via IRONMIND interface
+- [x] **INGEST-02**: System accepts up to 10 documents per user with configurable size limits
+- [x] **INGEST-03**: Backend calls docling-serve API to parse and extract structured content from uploads
+- [x] **INGEST-04**: System preserves document structure (sections, headings, page numbers) during parsing
+- [x] **INGEST-05**: System uses semantic chunking (not fixed-size) to preserve context boundaries
+- [x] **INGEST-06**: Each chunk includes metadata (doc_id, filename, page_range, section_title, user_id)
+- [x] **INGEST-07**: System stores original files to /data/raw/{user_id}/{doc_id}
+- [x] **INGEST-08**: System stores processed output to /data/processed/{user_id}/{doc_id}
+- [x] **INGEST-09**: Upload endpoint returns per-file status (filename, status, error if any)
+- [x] **INGEST-10**: User can see document status in UI (Processing, Indexed, Failed)
 
 ### Indexing & Storage (INDEX)
 
@@ -82,7 +82,7 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 - [x] **OBS-02**: Logging middleware generates unique request_id per request
 - [x] **OBS-03**: System logs incoming requests (path, method, user_id)
 - [x] **OBS-04**: System logs outgoing responses (status_code, duration)
-- [ ] **OBS-05**: System logs key events (doc_ingestion_started, doc_ingestion_completed, rag_query_started, rag_query_completed, llm_call_started, llm_call_completed)
+- [x] **OBS-05**: System logs key events (doc_ingestion_started, doc_ingestion_completed, rag_query_started, rag_query_completed, llm_call_started, llm_call_completed)
 - [ ] **OBS-06**: System correlates log entries via request_id across pipeline stages
 - [ ] **OBS-07**: System tracks and logs component latencies (docling-serve, txtai retrieval, Mistral reranking, GPT-5-mini)
 
@@ -105,7 +105,7 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 - [x] **INFRA-05**: GET /health endpoint returns backend status
 - [ ] **INFRA-06**: Frontend points to backend via environment-configurable base URL
 - [x] **INFRA-07**: All secrets managed via environment variables (no hardcoding)
-- [ ] **INFRA-08**: docling-serve deployed as separate service with API endpoint
+- [x] **INFRA-08**: docling-serve deployed as separate service with API endpoint
 - [ ] **INFRA-09**: FalkorDB deployed as graph database service
 - [ ] **INFRA-10**: Hetzner API key configured for cloud deployment automation
 
@@ -176,16 +176,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Complete |
-| INGEST-01 | Phase 2 | Pending |
-| INGEST-02 | Phase 2 | Pending |
-| INGEST-03 | Phase 2 | Pending |
-| INGEST-04 | Phase 2 | Pending |
-| INGEST-05 | Phase 2 | Pending |
-| INGEST-06 | Phase 2 | Pending |
-| INGEST-07 | Phase 2 | Pending |
-| INGEST-08 | Phase 2 | Pending |
-| INGEST-09 | Phase 2 | Pending |
-| INGEST-10 | Phase 2 | Pending |
+| INGEST-01 | Phase 2 | Complete |
+| INGEST-02 | Phase 2 | Complete |
+| INGEST-03 | Phase 2 | Complete |
+| INGEST-04 | Phase 2 | Complete |
+| INGEST-05 | Phase 2 | Complete |
+| INGEST-06 | Phase 2 | Complete |
+| INGEST-07 | Phase 2 | Complete |
+| INGEST-08 | Phase 2 | Complete |
+| INGEST-09 | Phase 2 | Complete |
+| INGEST-10 | Phase 2 | Complete |
 | INDEX-01 | Phase 3 | Pending |
 | INDEX-02 | Phase 3 | Pending |
 | INDEX-03 | Phase 3 | Pending |
@@ -223,7 +223,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OBS-02 | Phase 1 | Complete |
 | OBS-03 | Phase 1 | Complete |
 | OBS-04 | Phase 1 | Complete |
-| OBS-05 | Phase 2 | Pending |
+| OBS-05 | Phase 2 | Complete |
 | OBS-06 | Phase 3 | Pending |
 | OBS-07 | Phase 3 | Pending |
 | UI-01 | Phase 6 | Pending |
@@ -240,7 +240,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-05 | Phase 1 | Complete |
 | INFRA-06 | Phase 6 | Pending |
 | INFRA-07 | Phase 1 | Complete |
-| INFRA-08 | Phase 2 | Pending |
+| INFRA-08 | Phase 2 | Complete |
 | INFRA-09 | Phase 4 | Pending |
 | INFRA-10 | Phase 6 | Deferred |
 | DOCS-01 | Phase 6 | Pending |
