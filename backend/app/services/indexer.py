@@ -25,12 +25,24 @@ class TxtaiIndexer:
         self._initialize_embeddings()
 
     def _initialize_embeddings(self):
-        """Initialize txtai embeddings with content storage."""
+        """Initialize txtai embeddings with hybrid search and OpenAI embeddings."""
+        # Use OpenAI embeddings if API key available, fallback to local model
+        if settings.OPENAI_API_KEY:
+            embedding_path = f"openai/{settings.OPENAI_EMBEDDING_MODEL}"
+            logger.info("using_openai_embeddings", model=settings.OPENAI_EMBEDDING_MODEL)
+        else:
+            embedding_path = "sentence-transformers/all-MiniLM-L6-v2"
+            logger.warning("openai_key_missing", fallback="sentence-transformers/all-MiniLM-L6-v2")
+
         config = {
-            # Use OpenAI embeddings (configured via env var OPENAI_API_KEY)
-            "path": "sentence-transformers/all-MiniLM-L6-v2",  # Fallback for POC
-            "content": True,  # Enable metadata storage - CRITICAL
+            "path": embedding_path,
+            "content": True,  # Store metadata - CRITICAL
             "backend": "sqlite",
+            "hybrid": True,  # Enable hybrid search (semantic + BM25)
+            "scoring": {
+                "method": "bm25",
+                "normalize": True  # REQUIRED for RRF fusion - normalizes BM25 scores to 0-1
+            },
             "functions": [
                 {"name": "user_filter", "function": "app.services.indexer.user_filter"}
             ]
@@ -144,6 +156,70 @@ class TxtaiIndexer:
         ]
 
         return filtered[:limit]
+
+    def hybrid_search(
+        self,
+        query: str,
+        user_id: str,
+        limit: int = 25,
+        weights: float = 0.5,  # 0.5 = equal semantic/BM25
+        threshold: float = 0.3
+    ) -> List[Dict[str, Any]]:
+        """
+        Hybrid search combining semantic and BM25 with user filtering.
+
+        Uses txtai's built-in hybrid search with normalized score fusion.
+        Score normalization (scoring.normalize=True) enables proper fusion
+        equivalent to Reciprocal Rank Fusion (RRF).
+
+        Args:
+            query: Search query
+            user_id: User ID for filtering (multi-tenant isolation)
+            limit: Max results to return
+            weights: Semantic/BM25 balance (0=BM25 only, 1=semantic only, 0.5=equal)
+            threshold: Minimum score to include (filters low-relevance results)
+
+        Returns:
+            List of chunks with scores and full metadata
+        """
+        if not self.embeddings:
+            logger.warning("embeddings_not_initialized")
+            return []
+
+        try:
+            # Execute hybrid search with weights parameter
+            # txtai handles fusion internally when hybrid=True
+            results = self.embeddings.search(
+                query,
+                limit=limit * 2,  # Fetch more for post-filtering
+                weights=weights
+            )
+
+            # Filter by user_id and threshold
+            filtered = []
+            for result in results:
+                if result.get("user_id") != user_id:
+                    continue
+                score = result.get("score", 0)
+                if score < threshold:
+                    continue
+                filtered.append({
+                    "chunk_id": result.get("id"),
+                    "text": result.get("text"),
+                    "doc_id": result.get("doc_id"),
+                    "filename": result.get("filename"),
+                    "page_range": result.get("page_range"),
+                    "section_title": result.get("section_title"),
+                    "score": score,
+                    "user_id": user_id
+                })
+
+            # Limit to requested count
+            return filtered[:limit]
+
+        except Exception as e:
+            logger.error("hybrid_search_failed", error=str(e), user_id=user_id)
+            return []
 
     def get_document_chunks(self, doc_id: str, user_id: str) -> List[Dict]:
         """Get all chunks for a document."""
