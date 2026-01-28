@@ -53,13 +53,14 @@ Plans:
   4. System stores original files to /data/raw/{user_id}/{doc_id} and processed output to /data/processed/{user_id}/{doc_id}
   5. Upload endpoint returns per-file status (Processing, Indexed, Failed)
   6. System logs doc_ingestion_started and doc_ingestion_completed events with durations
-**Plans**: 4 plans in 3 waves
+**Plans**: 5 plans (4 original + 1 gap closure)
 
 Plans:
-- [ ] 02-01-PLAN.md - Storage layer with document models, database, and secure file storage
-- [ ] 02-02-PLAN.md - Document upload endpoint and docling-serve integration
-- [ ] 02-03-PLAN.md - Semantic chunking pipeline with txtai indexing
-- [ ] 02-04-PLAN.md - Status polling endpoint and end-to-end pipeline verification
+- [x] 02-01-PLAN.md - Storage layer with document models, database, and secure file storage
+- [x] 02-02-PLAN.md - Document upload endpoint and docling-serve integration
+- [x] 02-03-PLAN.md - Semantic chunking pipeline with txtai indexing
+- [x] 02-04-PLAN.md - Status polling endpoint and end-to-end pipeline verification
+- [ ] 02-05-PLAN.md - [GAP CLOSURE] Fix docling output format mismatch for chunking
 
 ### Phase 3: Core RAG with Hybrid Retrieval
 **Goal**: Working end-to-end RAG pipeline with hybrid retrieval (semantic + BM25) and Mistral reranking for technical document Q&A
@@ -136,7 +137,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
-| 2. Document Processing Pipeline | 0/4 | Ready | - |
+| 2. Document Processing Pipeline | 4/5 | Gap closure needed | - |
 | 3. Core RAG with Hybrid Retrieval | 0/TBD | Not started | - |
 | 4. Knowledge Graph Integration | 0/TBD | Not started | - |
 | 5. Multi-Source Synthesis | 0/TBD | Not started | - |
