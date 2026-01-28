@@ -23,6 +23,27 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: int = 10
     MAX_DOCUMENTS_PER_USER: int = 10
 
+    # RAG Pipeline - LLM and Embeddings
+    OPENAI_API_KEY: str = ""  # Required for embeddings + LLM
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    LLM_MODEL: str = "gpt-5-mini"
+    LLM_TEMPERATURE: float = 0.1  # Low for factual accuracy
+    LLM_MAX_TOKENS: int = 500
+
+    # RAG Pipeline - Reranker
+    DEEPINFRA_API_KEY: str = ""  # Required for reranker
+    RERANK_MODEL: str = "Qwen/Qwen3-Reranker-0.6B"  # DeepInfra model path
+
+    # Hybrid Search Settings
+    HYBRID_WEIGHT: float = 0.5  # 50/50 semantic/BM25
+    RETRIEVAL_LIMIT: int = 25  # Initial retrieval count
+    RERANK_LIMIT: int = 12  # Chunks to reranker
+    CONTEXT_LIMIT: int = 10  # Chunks to LLM
+    RELEVANCE_THRESHOLD: float = 0.3  # Minimum score to include
+
+    # Cache Settings
+    CACHE_TTL_SECONDS: int = 300  # 5 min default
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins into list."""
