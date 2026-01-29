@@ -10,6 +10,7 @@ from app.services.docling_client import DoclingClient, DoclingError
 from app.services.chunker import SemanticChunker
 from app.services.indexer import TxtaiIndexer
 from app.services.storage import StorageService
+from app.services.graph import EntityExtractor, GraphStore
 from app.models.documents import ProcessingStatus, ProcessingLogEntry
 from app.config import settings
 
@@ -29,6 +30,8 @@ class DocumentPipeline:
         self.chunker = SemanticChunker()
         self.indexer = TxtaiIndexer()
         self.storage = StorageService(settings.DATA_DIR)
+        self.extractor = EntityExtractor()
+        self.graph_store = GraphStore()
 
     async def process_document(
         self,
@@ -94,7 +97,61 @@ class DocumentPipeline:
                 duration_ms=int((time.time() - stage_start) * 1000)
             ))
 
-            # Stage 3: INDEXING
+            # Stage 3: GRAPH EXTRACTION
+            stage_start = time.time()
+            entity_count = 0
+            relationship_count = 0
+
+            try:
+                await self._update_status(doc_id, user_id, ProcessingStatus.GRAPH_EXTRACTING, "Extracting entities for knowledge graph")
+
+                # Clear any existing graph data for this document (for re-ingestion)
+                self.graph_store.delete_document_entities(doc_id, user_id)
+
+                # Extract from each chunk
+                for chunk in chunks:
+                    extraction = await self.extractor.extract_from_chunk(
+                        chunk_text=chunk.text,
+                        doc_id=doc_id,
+                        chunk_id=chunk.chunk_id
+                    )
+
+                    # Store entities
+                    for entity in extraction.entities:
+                        self.graph_store.add_entity(entity, user_id)
+                        entity_count += 1
+
+                    # Store relationships
+                    for rel in extraction.relationships:
+                        self.graph_store.add_relationship(rel, user_id)
+                        relationship_count += 1
+
+                processing_log.append(ProcessingLogEntry(
+                    stage="GraphExtracting",
+                    started_at=datetime.fromtimestamp(stage_start, timezone.utc),
+                    completed_at=datetime.now(timezone.utc),
+                    duration_ms=int((time.time() - stage_start) * 1000)
+                ))
+
+                logger.info("graph_extraction_completed",
+                           doc_id=doc_id,
+                           entity_count=entity_count,
+                           relationship_count=relationship_count)
+
+            except Exception as e:
+                # Log warning but continue to indexing (graph is enhancement, not critical path)
+                logger.warning("graph_extraction_failed",
+                              doc_id=doc_id,
+                              error=str(e))
+                processing_log.append(ProcessingLogEntry(
+                    stage="GraphExtracting",
+                    started_at=datetime.fromtimestamp(stage_start, timezone.utc),
+                    completed_at=datetime.now(timezone.utc),
+                    duration_ms=int((time.time() - stage_start) * 1000),
+                    error=str(e)
+                ))
+
+            # Stage 4: INDEXING
             stage_start = time.time()
             await self._update_status(doc_id, user_id, ProcessingStatus.INDEXING, "Indexing chunks in txtai")
 
@@ -107,7 +164,7 @@ class DocumentPipeline:
                 duration_ms=int((time.time() - stage_start) * 1000)
             ))
 
-            # Stage 4: DONE
+            # Stage 5: DONE
             total_duration_ms = int((time.time() - pipeline_start) * 1000)
 
             doc = await self.db.get_document(doc_id)
@@ -115,6 +172,8 @@ class DocumentPipeline:
             doc.current_stage = "Complete"
             doc.page_count = page_count
             doc.chunk_count = indexed_count
+            doc.entity_count = entity_count
+            doc.relationship_count = relationship_count
             doc.processing_log.extend(processing_log)
             await self.db.update_document(doc)
 
