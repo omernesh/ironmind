@@ -113,3 +113,24 @@ class GraphExtraction(BaseModel):
         default_factory=list,
         description="Relationships between entities found in chunk"
     )
+
+
+class DocumentRelationship(BaseModel):
+    """Relationship between two documents in the corpus.
+
+    Attributes:
+        source_doc_id: Document that contains the reference
+        target_doc_id: Document being referenced
+        relationship_type: Type of cross-reference:
+            - explicit_citation: Direct reference ("See Document X", doc codes, hyperlinks)
+            - shared_entities: Documents share 2+ common entities
+        strength: Confidence score (0.0-1.0). Explicit citations = 1.0, shared entities = 0.5-0.9
+        evidence: List of citation text or shared entity names supporting this relationship
+    """
+    source_doc_id: str = Field(..., description="Document containing the reference")
+    target_doc_id: str = Field(..., description="Document being referenced")
+    relationship_type: Literal["explicit_citation", "shared_entities"] = Field(
+        ..., description="Type of cross-reference"
+    )
+    strength: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
+    evidence: List[str] = Field(default_factory=list, description="Supporting evidence")
