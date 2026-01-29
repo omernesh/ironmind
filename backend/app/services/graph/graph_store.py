@@ -409,3 +409,154 @@ class GraphStore:
                 user_id=user_id
             )
             return 0
+
+    def count_entities(self, user_id: str) -> int:
+        """Count total entities for a user.
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            Number of entities
+        """
+        try:
+            query = "MATCH (e:Entity {user_id: $user_id}) RETURN count(e) as count"
+            params = {"user_id": user_id}
+            result = self.graph.query(query, params=params)
+
+            if result.result_set and len(result.result_set) > 0:
+                return result.result_set[0][0]
+
+            return 0
+
+        except Exception as e:
+            logger.error(
+                "count_entities_failed",
+                error=str(e),
+                user_id=user_id
+            )
+            return 0
+
+    def count_relationships(self, user_id: str) -> int:
+        """Count total relationships for a user.
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            Number of relationships
+        """
+        try:
+            query = """
+            MATCH (a:Entity {user_id: $user_id})-[r]->(b)
+            RETURN count(r) as count
+            """
+            params = {"user_id": user_id}
+            result = self.graph.query(query, params=params)
+
+            if result.result_set and len(result.result_set) > 0:
+                return result.result_set[0][0]
+
+            return 0
+
+        except Exception as e:
+            logger.error(
+                "count_relationships_failed",
+                error=str(e),
+                user_id=user_id
+            )
+            return 0
+
+    def get_entity_type_counts(self, user_id: str) -> Dict[str, int]:
+        """Count entities by type for a user.
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            Dict mapping entity type to count
+        """
+        try:
+            query = """
+            MATCH (e:Entity {user_id: $user_id})
+            RETURN e.type as type, count(*) as count
+            """
+            params = {"user_id": user_id}
+            result = self.graph.query(query, params=params)
+
+            type_counts = {}
+            for record in result.result_set:
+                entity_type = record[0]
+                count = record[1]
+                type_counts[entity_type] = count
+
+            return type_counts
+
+        except Exception as e:
+            logger.error(
+                "get_entity_type_counts_failed",
+                error=str(e),
+                user_id=user_id
+            )
+            return {}
+
+    def list_entities(
+        self,
+        user_id: str,
+        entity_type: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """List entities for a user, optionally filtered by type.
+
+        Args:
+            user_id: User identifier
+            entity_type: Optional filter by entity type
+            limit: Maximum number of entities to return
+
+        Returns:
+            List of entity property dicts
+        """
+        try:
+            if entity_type:
+                query = """
+                MATCH (e:Entity {user_id: $user_id, type: $entity_type})
+                RETURN e
+                LIMIT $limit
+                """
+                params = {
+                    "user_id": user_id,
+                    "entity_type": entity_type,
+                    "limit": limit
+                }
+            else:
+                query = """
+                MATCH (e:Entity {user_id: $user_id})
+                RETURN e
+                LIMIT $limit
+                """
+                params = {"user_id": user_id, "limit": limit}
+
+            result = self.graph.query(query, params=params)
+
+            entities = []
+            for record in result.result_set:
+                node = record[0]
+                entities.append(dict(node.properties))
+
+            logger.debug(
+                "list_entities_completed",
+                count=len(entities),
+                entity_type=entity_type,
+                user_id=user_id
+            )
+
+            return entities
+
+        except Exception as e:
+            logger.error(
+                "list_entities_failed",
+                error=str(e),
+                entity_type=entity_type,
+                user_id=user_id
+            )
+            return []
