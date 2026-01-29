@@ -1,35 +1,45 @@
-"""Semantic chunking service for document sections."""
+"""Element-aware semantic chunking for Docling documents."""
 import hashlib
 import tiktoken
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 from datetime import datetime, timezone
 from app.core.logging import get_logger
-from app.models.documents import ChunkMetadata
+from app.models.documents import (
+    ChunkMetadata,
+    DoclingElement,
+    DoclingTextElement,
+    DoclingTableElement,
+    DoclingHeadingElement,
+    DoclingListItemElement,
+    DoclingParseResult
+)
 
 logger = get_logger()
 
 
 class SemanticChunker:
     """
-    Chunk documents by section boundaries with overlap.
+    Chunk documents by element boundaries with overlap.
 
-    Strategy:
-    1. Respect section boundaries (never split mid-section)
-    2. Merge sections < 50 tokens with next section
-    3. Split large sections at ~1000 token boundaries
-    4. Add 10-20% overlap between consecutive chunks
+    Strategy (element-aware):
+    1. Tables are ATOMIC - never split, even if large
+    2. Section headers start new chunks
+    3. Text paragraphs are grouped until target_tokens
+    4. Large paragraphs split at sentence boundaries
+    5. 15% overlap between consecutive text chunks
     """
 
     def __init__(
         self,
         target_tokens: int = 1000,
+        max_tokens: int = 10000,  # Hard limit - well under OpenAI's 300K
         overlap_pct: float = 0.15,
-        min_section_tokens: int = 50
+        min_chunk_tokens: int = 50
     ):
         self.target_tokens = target_tokens
+        self.max_tokens = max_tokens
         self.overlap_pct = overlap_pct
-        self.min_section_tokens = min_section_tokens
-        # Use cl100k_base encoding (GPT-3.5/4 compatible)
+        self.min_chunk_tokens = min_chunk_tokens
         self.encoder = tiktoken.get_encoding("cl100k_base")
 
     def count_tokens(self, text: str) -> int:
@@ -38,16 +48,16 @@ class SemanticChunker:
 
     def chunk_document(
         self,
-        docling_output: Dict[str, Any],
+        docling_output: Union[Dict[str, Any], DoclingParseResult],
         doc_id: str,
         user_id: str,
         filename: str
     ) -> List[ChunkMetadata]:
         """
-        Chunk docling output into semantic chunks with metadata.
+        Chunk document using element-aware strategy.
 
         Args:
-            docling_output: Parsed document from docling-serve
+            docling_output: Either DoclingParseResult or dict with elements/md_content
             doc_id: Document ID
             user_id: User ID
             filename: Original filename
@@ -55,157 +65,173 @@ class SemanticChunker:
         Returns:
             List of ChunkMetadata with text and metadata
         """
-        sections = self._extract_sections(docling_output)
+        # Extract elements from input
+        elements = self._get_elements(docling_output)
 
-        if not sections:
-            logger.warning("no_sections_found", doc_id=doc_id)
-            # Fallback: check for document.md_content or top-level text
-            full_text = ""
-            if "document" in docling_output:
-                full_text = docling_output["document"].get("md_content", "")
-            if not full_text:
-                full_text = docling_output.get("text", "")
-            if full_text:
-                sections = [{"title": "Document", "text": full_text, "page_range": "1"}]
+        if not elements:
+            # Fallback to markdown-based chunking if no elements
+            logger.warning("no_elements_found_using_markdown_fallback", doc_id=doc_id)
+            return self._chunk_from_markdown(docling_output, doc_id, user_id, filename)
 
-        # Merge small sections
-        merged_sections = self._merge_small_sections(sections)
+        # Group elements into chunks
+        raw_chunks = self._group_elements_into_chunks(elements)
 
-        # Split large sections
-        split_sections = self._split_large_sections(merged_sections)
+        # Create ChunkMetadata objects
+        chunks = self._create_chunks(raw_chunks, doc_id, user_id, filename)
 
-        # Create chunks with metadata
-        chunks = self._create_chunks(split_sections, doc_id, user_id, filename)
-
-        # Add overlap
+        # Add overlap between text chunks
         chunks_with_overlap = self._add_overlap(chunks)
 
         # Deduplicate
         unique_chunks = self._deduplicate(chunks_with_overlap)
 
-        logger.info("chunking_completed",
+        logger.info("element_chunking_completed",
                    doc_id=doc_id,
-                   sections=len(sections),
-                   chunks=len(unique_chunks))
+                   elements=len(elements),
+                   chunks=len(unique_chunks),
+                   max_tokens=max(c.token_count for c in unique_chunks) if unique_chunks else 0)
 
         return unique_chunks
 
-    def _extract_sections(self, docling_output: Dict) -> List[Dict]:
-        """Extract sections from docling output format."""
-        sections = []
+    def _get_elements(self, docling_output: Union[Dict, DoclingParseResult]) -> List[DoclingElement]:
+        """Extract elements from various input formats."""
+        if isinstance(docling_output, DoclingParseResult):
+            return docling_output.elements
 
-        # Check for docling v1.10.0 format (document.md_content)
-        if "document" in docling_output:
-            doc = docling_output["document"]
-            md_content = doc.get("md_content", "")
-            if md_content:
-                return self._parse_markdown_sections(md_content)
+        # Dict format - check for elements list
+        if "elements" in docling_output:
+            return [self._dict_to_element(e) for e in docling_output["elements"]]
 
-        # Docling may return different structures
-        # Try common formats (fallback for other docling configurations)
-        if "sections" in docling_output:
-            for section in docling_output["sections"]:
-                sections.append({
-                    "title": section.get("heading", section.get("title", "")),
-                    "text": section.get("text", section.get("content", "")),
-                    "page_range": section.get("page_range",
-                                             str(section.get("page", "")))
-                })
-        elif "pages" in docling_output:
-            # Page-based structure
-            for page in docling_output["pages"]:
-                page_num = page.get("page_number", "")
-                for block in page.get("blocks", []):
-                    sections.append({
-                        "title": block.get("heading", ""),
-                        "text": block.get("text", ""),
-                        "page_range": str(page_num)
-                    })
+        return []
 
-        return sections
+    def _dict_to_element(self, d: dict) -> DoclingElement:
+        """Convert dict to typed DoclingElement."""
+        element_type = d.get("element_type", "text")
+        if element_type == "table":
+            return DoclingTableElement(**d)
+        elif element_type == "section_header":
+            return DoclingHeadingElement(**d)
+        elif element_type == "list_item":
+            return DoclingListItemElement(**d)
+        else:
+            return DoclingTextElement(**d)
 
-    def _parse_markdown_sections(self, md_content: str) -> List[Dict]:
-        """Parse markdown content into sections by headings."""
+    def _group_elements_into_chunks(self, elements: List[DoclingElement]) -> List[Dict]:
+        """Group elements into chunks respecting element boundaries."""
+        chunks = []
+        current_chunk = {
+            "texts": [],
+            "page_start": None,
+            "page_end": None,
+            "section_title": None,
+            "is_table": False
+        }
+        current_tokens = 0
+        current_section = "Document"
+
+        for element in elements:
+            element_tokens = self.count_tokens(element.text)
+
+            # Update section title from headings
+            if isinstance(element, DoclingHeadingElement):
+                current_section = element.text
+
+                # Start new chunk on section header (if current has content)
+                if current_chunk["texts"] and current_tokens >= self.min_chunk_tokens:
+                    chunks.append(self._finalize_chunk(current_chunk, current_tokens))
+                    current_chunk = self._new_chunk()
+                    current_tokens = 0
+
+                current_chunk["section_title"] = element.text
+
+            # Tables are ATOMIC - always their own chunk
+            if isinstance(element, DoclingTableElement):
+                # Flush current text chunk first
+                if current_chunk["texts"]:
+                    chunks.append(self._finalize_chunk(current_chunk, current_tokens))
+                    current_chunk = self._new_chunk()
+                    current_tokens = 0
+
+                # Create table chunk (atomic, never split)
+                table_chunk = {
+                    "texts": [element.text],
+                    "page_start": element.page_number,
+                    "page_end": element.page_number,
+                    "section_title": current_section,
+                    "is_table": True,
+                    "token_count": element_tokens
+                }
+                chunks.append(table_chunk)
+
+                logger.debug("table_chunk_created",
+                            tokens=element_tokens,
+                            rows=element.num_rows,
+                            cols=element.num_cols)
+                continue
+
+            # Text elements - group until target reached
+            if current_tokens + element_tokens > self.target_tokens and current_chunk["texts"]:
+                # Current chunk is full
+                chunks.append(self._finalize_chunk(current_chunk, current_tokens))
+                current_chunk = self._new_chunk()
+                current_chunk["section_title"] = current_section
+                current_tokens = 0
+
+            # Handle oversized single elements
+            if element_tokens > self.max_tokens:
+                # Split the element into smaller pieces
+                split_texts = self._split_large_text(element.text)
+                for split_text in split_texts:
+                    split_tokens = self.count_tokens(split_text)
+                    if current_tokens + split_tokens > self.target_tokens and current_chunk["texts"]:
+                        chunks.append(self._finalize_chunk(current_chunk, current_tokens))
+                        current_chunk = self._new_chunk()
+                        current_chunk["section_title"] = current_section
+                        current_tokens = 0
+
+                    current_chunk["texts"].append(split_text)
+                    current_tokens += split_tokens
+                    self._update_page_range(current_chunk, element.page_number)
+            else:
+                current_chunk["texts"].append(element.text)
+                current_tokens += element_tokens
+                self._update_page_range(current_chunk, element.page_number)
+
+        # Don't forget the last chunk
+        if current_chunk["texts"]:
+            chunks.append(self._finalize_chunk(current_chunk, current_tokens))
+
+        return chunks
+
+    def _new_chunk(self) -> Dict:
+        """Create new empty chunk dict."""
+        return {
+            "texts": [],
+            "page_start": None,
+            "page_end": None,
+            "section_title": None,
+            "is_table": False
+        }
+
+    def _finalize_chunk(self, chunk: Dict, token_count: int) -> Dict:
+        """Finalize chunk with token count."""
+        chunk["token_count"] = token_count
+        return chunk
+
+    def _update_page_range(self, chunk: Dict, page_number: Optional[int]):
+        """Update chunk's page range."""
+        if page_number is None:
+            return
+        if chunk["page_start"] is None:
+            chunk["page_start"] = page_number
+        chunk["page_end"] = page_number
+
+    def _split_large_text(self, text: str) -> List[str]:
+        """Split large text at sentence boundaries."""
         import re
 
-        sections = []
-        # Match markdown headings (# Heading, ## Subheading, etc.)
-        heading_pattern = re.compile(r'^(#{1,6})\s+(.+)$', re.MULTILINE)
-
-        # Find all headings and their positions
-        headings = list(heading_pattern.finditer(md_content))
-
-        if not headings:
-            # No headings found - treat entire content as one section
-            return [{"title": "Document", "text": md_content.strip(), "page_range": "1"}]
-
-        for i, match in enumerate(headings):
-            title = match.group(2).strip()
-            start = match.end()
-
-            # End is either next heading or end of document
-            if i + 1 < len(headings):
-                end = headings[i + 1].start()
-            else:
-                end = len(md_content)
-
-            text = md_content[start:end].strip()
-
-            # Estimate page number (rough: 3000 chars per page)
-            page_estimate = max(1, (match.start() // 3000) + 1)
-
-            if text:  # Only add sections with content
-                sections.append({
-                    "title": title,
-                    "text": text,
-                    "page_range": str(page_estimate)
-                })
-
-        return sections
-
-    def _merge_small_sections(self, sections: List[Dict]) -> List[Dict]:
-        """Merge sections smaller than min_section_tokens."""
-        if not sections:
-            return []
-
-        merged = []
-        current = None
-
-        for section in sections:
-            token_count = self.count_tokens(section["text"])
-
-            if current is None:
-                current = section.copy()
-            elif token_count < self.min_section_tokens:
-                # Merge with current
-                current["text"] += "\n\n" + section["text"]
-                if section["page_range"]:
-                    current["page_range"] = self._merge_page_ranges(
-                        current["page_range"], section["page_range"]
-                    )
-            else:
-                # Current section is complete
-                merged.append(current)
-                current = section.copy()
-
-        if current:
-            merged.append(current)
-
-        return merged
-
-    def _split_oversized_paragraph(self, para: str) -> List[str]:
-        """Split a paragraph that exceeds max tokens by sentences or fixed boundaries.
-
-        Args:
-            para: Paragraph text that's too large
-
-        Returns:
-            List of smaller text chunks
-        """
-        # Try splitting by sentences first
-        import re
-        sentences = re.split(r'(?<=[.!?])\s+', para)
-
+        # Split by sentences
+        sentences = re.split(r'(?<=[.!?])\s+', text)
         chunks = []
         current = ""
         current_tokens = 0
@@ -213,14 +239,14 @@ class SemanticChunker:
         for sentence in sentences:
             sentence_tokens = self.count_tokens(sentence)
 
-            # If a single sentence is too large, split by fixed token boundaries
-            if sentence_tokens > self.target_tokens:
+            # If single sentence exceeds max, split by words
+            if sentence_tokens > self.max_tokens:
                 if current:
                     chunks.append(current.strip())
                     current = ""
                     current_tokens = 0
 
-                # Split by words for very long sentences/tables
+                # Word-level splitting for very long sentences
                 words = sentence.split()
                 for word in words:
                     word_tokens = self.count_tokens(word + " ")
@@ -243,90 +269,130 @@ class SemanticChunker:
         if current.strip():
             chunks.append(current.strip())
 
-        return chunks if chunks else [para]  # Return original if splitting failed
-
-    def _split_large_sections(self, sections: List[Dict]) -> List[Dict]:
-        """Split sections larger than 1.5x target into multiple chunks."""
-        result = []
-        max_tokens = int(self.target_tokens * 1.5)
-
-        for section in sections:
-            token_count = self.count_tokens(section["text"])
-
-            if token_count <= max_tokens:
-                result.append(section)
-            else:
-                # Split at paragraph boundaries
-                paragraphs = section["text"].split("\n\n")
-                current_text = ""
-                current_tokens = 0
-                chunk_idx = 0
-
-                for para in paragraphs:
-                    para_tokens = self.count_tokens(para)
-
-                    # Handle oversized paragraphs (e.g., large tables, dense text)
-                    if para_tokens > self.target_tokens:
-                        # Flush current chunk if exists
-                        if current_text:
-                            result.append({
-                                "title": f"{section['title']} (part {chunk_idx + 1})",
-                                "text": current_text.strip(),
-                                "page_range": section["page_range"]
-                            })
-                            chunk_idx += 1
-                            current_text = ""
-                            current_tokens = 0
-
-                        # Split the oversized paragraph
-                        sub_chunks = self._split_oversized_paragraph(para)
-                        for sub_chunk in sub_chunks:
-                            sub_tokens = self.count_tokens(sub_chunk)
-                            if current_tokens + sub_tokens > self.target_tokens and current_text:
-                                result.append({
-                                    "title": f"{section['title']} (part {chunk_idx + 1})",
-                                    "text": current_text.strip(),
-                                    "page_range": section["page_range"]
-                                })
-                                chunk_idx += 1
-                                current_text = sub_chunk + "\n\n"
-                                current_tokens = sub_tokens
-                            else:
-                                current_text += sub_chunk + "\n\n"
-                                current_tokens += sub_tokens
-                    elif current_tokens + para_tokens > self.target_tokens and current_text:
-                        result.append({
-                            "title": f"{section['title']} (part {chunk_idx + 1})",
-                            "text": current_text.strip(),
-                            "page_range": section["page_range"]
-                        })
-                        current_text = para + "\n\n"
-                        current_tokens = para_tokens
-                        chunk_idx += 1
-                    else:
-                        current_text += para + "\n\n"
-                        current_tokens += para_tokens
-
-                if current_text.strip():
-                    result.append({
-                        "title": f"{section['title']} (part {chunk_idx + 1})" if chunk_idx > 0 else section["title"],
-                        "text": current_text.strip(),
-                        "page_range": section["page_range"]
-                    })
-
-        return result
+        return chunks if chunks else [text]
 
     def _create_chunks(
         self,
-        sections: List[Dict],
+        raw_chunks: List[Dict],
         doc_id: str,
         user_id: str,
         filename: str
     ) -> List[ChunkMetadata]:
-        """Create ChunkMetadata objects from sections."""
+        """Create ChunkMetadata objects from grouped chunks."""
         chunks = []
 
-        for idx, section in enumerate(sections):
+        for idx, raw in enumerate(raw_chunks):
+            chunk_id = f"{doc_id}-chunk-{idx:03d}"
+            text = "\n\n".join(raw["texts"])
+            token_count = raw.get("token_count", self.count_tokens(text))
+
+            # Format page range
+            page_range = None
+            if raw["page_start"]:
+                if raw["page_end"] and raw["page_end"] != raw["page_start"]:
+                    page_range = f"{raw['page_start']}-{raw['page_end']}"
+                else:
+                    page_range = str(raw["page_start"])
+
+            chunks.append(ChunkMetadata(
+                chunk_id=chunk_id,
+                doc_id=doc_id,
+                user_id=user_id,
+                filename=filename,
+                section_title=raw.get("section_title"),
+                page_range=page_range,
+                chunk_index=idx,
+                token_count=token_count,
+                text=text,
+                created_at=datetime.now(timezone.utc)
+            ))
+
+        return chunks
+
+    def _add_overlap(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
+        """Add overlap from previous chunk (skip table chunks)."""
+        if len(chunks) <= 1:
+            return chunks
+
+        overlap_tokens = int(self.target_tokens * self.overlap_pct)
+        result = [chunks[0]]
+
+        for i in range(1, len(chunks)):
+            chunk = chunks[i]
+            prev_chunk = chunks[i-1]
+
+            # Don't add overlap to/from table chunks
+            # Check by token count heuristic (tables tend to be larger)
+            if prev_chunk.token_count > self.max_tokens * 0.8:
+                result.append(chunk)
+                continue
+
+            prev_tokens = self.encoder.encode(prev_chunk.text)
+            if len(prev_tokens) > overlap_tokens:
+                overlap_text = self.encoder.decode(prev_tokens[-overlap_tokens:])
+                chunk.text = overlap_text + " " + chunk.text
+                chunk.token_count = self.count_tokens(chunk.text)
+
+            result.append(chunk)
+
+        return result
+
+    def _deduplicate(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
+        """Remove duplicate chunks by content hash."""
+        seen_hashes = set()
+        unique = []
+
+        for chunk in chunks:
+            normalized = chunk.text.lower().strip()
+            content_hash = hashlib.sha256(normalized.encode()).hexdigest()
+
+            if content_hash not in seen_hashes:
+                seen_hashes.add(content_hash)
+                unique.append(chunk)
+
+        if len(chunks) != len(unique):
+            logger.info("chunks_deduplicated",
+                       original=len(chunks),
+                       unique=len(unique))
+
+        return unique
+
+    # ============ FALLBACK: Markdown-based chunking ============
+    # Used when no structured elements available
+
+    def _chunk_from_markdown(
+        self,
+        docling_output: Union[Dict[str, Any], DoclingParseResult],
+        doc_id: str,
+        user_id: str,
+        filename: str
+    ) -> List[ChunkMetadata]:
+        """Fallback to markdown-based chunking (original algorithm improved)."""
+        md_content = ""
+        if isinstance(docling_output, DoclingParseResult):
+            md_content = docling_output.md_content
+        elif isinstance(docling_output, dict):
+            if "document" in docling_output:
+                md_content = docling_output["document"].get("md_content", "")
+            elif "md_content" in docling_output:
+                md_content = docling_output.get("md_content", "")
+
+        if not md_content:
+            logger.warning("no_content_for_chunking", doc_id=doc_id)
+            return []
+
+        # Parse markdown into sections
+        sections = self._parse_markdown_sections(md_content)
+
+        # Merge small sections
+        merged = self._merge_small_sections(sections)
+
+        # Split large sections
+        split = self._split_large_sections(merged)
+
+        # Create chunks
+        chunks = []
+        for idx, section in enumerate(split):
             chunk_id = f"{doc_id}-chunk-{idx:03d}"
             token_count = self.count_tokens(section["text"])
 
@@ -343,66 +409,94 @@ class SemanticChunker:
                 created_at=datetime.now(timezone.utc)
             ))
 
+        # Add overlap and deduplicate
+        chunks = self._add_overlap(chunks)
+        chunks = self._deduplicate(chunks)
+
+        logger.info("markdown_chunking_completed",
+                   doc_id=doc_id,
+                   sections=len(sections),
+                   chunks=len(chunks))
+
         return chunks
 
-    def _add_overlap(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
-        """Add overlap from previous chunk to current chunk."""
-        if len(chunks) <= 1:
-            return chunks
+    def _parse_markdown_sections(self, md_content: str) -> List[Dict]:
+        """Parse markdown content into sections by headings."""
+        import re
 
-        overlap_tokens = int(self.target_tokens * self.overlap_pct)
-        result = [chunks[0]]
+        sections = []
+        heading_pattern = re.compile(r'^(#{1,6})\s+(.+)$', re.MULTILINE)
+        headings = list(heading_pattern.finditer(md_content))
 
-        for i in range(1, len(chunks)):
-            prev_text = chunks[i-1].text
-            prev_tokens = self.encoder.encode(prev_text)
+        if not headings:
+            # No headings - split by paragraphs instead
+            paragraphs = md_content.split("\n\n")
+            for i, para in enumerate(paragraphs):
+                if para.strip():
+                    sections.append({
+                        "title": f"Section {i+1}",
+                        "text": para.strip(),
+                        "page_range": str((i * 3000 // len(md_content)) + 1) if md_content else "1"
+                    })
+            return sections
 
-            # Take last N tokens from previous chunk
-            overlap_text = self.encoder.decode(prev_tokens[-overlap_tokens:]) if len(prev_tokens) > overlap_tokens else ""
+        for i, match in enumerate(headings):
+            title = match.group(2).strip()
+            start = match.end()
+            end = headings[i + 1].start() if i + 1 < len(headings) else len(md_content)
+            text = md_content[start:end].strip()
+            page_estimate = max(1, (match.start() // 3000) + 1)
 
-            # Prepend to current chunk
-            chunk = chunks[i]
-            chunk.text = overlap_text + " " + chunk.text
-            chunk.token_count = self.count_tokens(chunk.text)
-            result.append(chunk)
+            if text:
+                sections.append({
+                    "title": title,
+                    "text": text,
+                    "page_range": str(page_estimate)
+                })
+
+        return sections
+
+    def _merge_small_sections(self, sections: List[Dict]) -> List[Dict]:
+        """Merge sections smaller than min_chunk_tokens."""
+        if not sections:
+            return []
+
+        merged = []
+        current = None
+
+        for section in sections:
+            token_count = self.count_tokens(section["text"])
+
+            if current is None:
+                current = section.copy()
+            elif token_count < self.min_chunk_tokens:
+                current["text"] += "\n\n" + section["text"]
+            else:
+                merged.append(current)
+                current = section.copy()
+
+        if current:
+            merged.append(current)
+
+        return merged
+
+    def _split_large_sections(self, sections: List[Dict]) -> List[Dict]:
+        """Split sections larger than max_tokens."""
+        result = []
+
+        for section in sections:
+            token_count = self.count_tokens(section["text"])
+
+            if token_count <= self.max_tokens:
+                result.append(section)
+            else:
+                # Split at paragraph boundaries
+                split_texts = self._split_large_text(section["text"])
+                for i, split_text in enumerate(split_texts):
+                    result.append({
+                        "title": f"{section['title']} (part {i+1})" if i > 0 else section["title"],
+                        "text": split_text,
+                        "page_range": section["page_range"]
+                    })
 
         return result
-
-    def _deduplicate(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
-        """Remove duplicate chunks by content hash."""
-        seen_hashes = set()
-        unique = []
-
-        for chunk in chunks:
-            # Normalize: lowercase, strip whitespace
-            normalized = chunk.text.lower().strip()
-            content_hash = hashlib.sha256(normalized.encode()).hexdigest()
-
-            if content_hash not in seen_hashes:
-                seen_hashes.add(content_hash)
-                unique.append(chunk)
-
-        if len(chunks) != len(unique):
-            logger.info("chunks_deduplicated",
-                       original=len(chunks),
-                       unique=len(unique))
-
-        return unique
-
-    def _merge_page_ranges(self, range1: str, range2: str) -> str:
-        """Merge two page ranges into a combined range."""
-        try:
-            # Parse ranges like "1-3" or "5"
-            pages = set()
-            for r in [range1, range2]:
-                if "-" in r:
-                    start, end = r.split("-")
-                    pages.update(range(int(start), int(end) + 1))
-                elif r.isdigit():
-                    pages.add(int(r))
-
-            if pages:
-                return f"{min(pages)}-{max(pages)}"
-        except:
-            pass
-        return range1 or range2
