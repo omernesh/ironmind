@@ -97,10 +97,14 @@ Plans:
   4. Graph-aware retrieval incorporates related entities for multi-component questions
   5. Backend provides GET /api/debug/graph/sample endpoint for graph inspection
   6. System demonstrates improved answer quality for relationship-based queries (e.g., "how does X connect to Y")
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 04-01: [Brief description - to be created during plan-phase]
+- [ ] 04-01-PLAN.md - Graph schemas and FalkorDB client with configuration
+- [ ] 04-02-PLAN.md - LLM-based entity/relationship extraction with Structured Outputs
+- [ ] 04-03-PLAN.md - Pipeline integration for graph extraction during ingestion
+- [ ] 04-04-PLAN.md - Graph-aware dual-channel retrieval
+- [ ] 04-05-PLAN.md - Debug endpoint and end-to-end verification
 
 ### Phase 5: Multi-Source Synthesis
 **Goal**: Advanced multi-document reasoning with cross-reference detection and comprehensive citation aggregation
@@ -144,6 +148,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
 | 2. Document Processing Pipeline | 5/5 | Complete | 2026-01-28 |
 | 3. Core RAG with Hybrid Retrieval | 6/6 | Complete | 2026-01-29 |
-| 4. Knowledge Graph Integration | 0/TBD | Not started | - |
+| 4. Knowledge Graph Integration | 0/5 | Planned | - |
 | 5. Multi-Source Synthesis | 0/TBD | Not started | - |
 | 6. Frontend Integration & Deployment | 0/TBD | Not started | - |
