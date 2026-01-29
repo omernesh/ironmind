@@ -1,7 +1,7 @@
 """Document data models for processing pipeline."""
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -88,6 +88,60 @@ class Document(BaseModel):
             }
         }
 
+
+# =============================================================================
+# Docling Structured Elements
+# =============================================================================
+
+class DoclingElement(BaseModel):
+    """Base class for docling document elements."""
+    element_type: str = Field(..., description="Element type: text, table, section_header, list_item")
+    text: str = Field(..., description="Element text content")
+    page_number: Optional[int] = Field(None, description="Page number (1-indexed)")
+    level: Optional[int] = Field(None, description="Hierarchy level in document tree")
+
+
+class DoclingTextElement(DoclingElement):
+    """Text paragraph element."""
+    element_type: Literal["text"] = "text"
+    label: Optional[str] = Field(None, description="Label like PARAGRAPH, CAPTION, etc.")
+
+
+class DoclingTableElement(DoclingElement):
+    """Table element - should never be split."""
+    element_type: Literal["table"] = "table"
+    num_rows: Optional[int] = Field(None, description="Number of rows")
+    num_cols: Optional[int] = Field(None, description="Number of columns")
+    is_atomic: bool = Field(True, description="Tables are atomic, never split")
+
+
+class DoclingHeadingElement(DoclingElement):
+    """Section header element."""
+    element_type: Literal["section_header"] = "section_header"
+    heading_level: int = Field(1, description="Heading level 1-6")
+
+
+class DoclingListItemElement(DoclingElement):
+    """List item element."""
+    element_type: Literal["list_item"] = "list_item"
+    marker: Optional[str] = Field(None, description="List marker (bullet, number)")
+
+
+# Union type for all element types
+DoclingElementUnion = Union[DoclingTextElement, DoclingTableElement, DoclingHeadingElement, DoclingListItemElement]
+
+
+class DoclingParseResult(BaseModel):
+    """Result from docling parsing with both structured and markdown output."""
+    elements: List[DoclingElementUnion] = Field(default_factory=list, description="Structured elements in reading order")
+    md_content: str = Field("", description="Full markdown content for fallback")
+    page_count: int = Field(0, description="Total pages in document")
+    raw_json: Optional[dict] = Field(None, description="Raw JSON response for debugging")
+
+
+# =============================================================================
+# Chunk Models
+# =============================================================================
 
 class ChunkMetadata(BaseModel):
     """Metadata for a single document chunk."""
