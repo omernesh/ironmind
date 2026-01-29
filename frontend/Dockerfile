@@ -46,6 +46,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install SQLite for database initialization
+RUN apk add --no-cache sqlite
+
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -57,6 +60,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy database initialization script
+COPY --chown=nextjs:nodejs scripts/init-auth-db.sh /app/scripts/init-auth-db.sh
+RUN chmod +x /app/scripts/init-auth-db.sh
+
 # Create data directory for SQLite (Better Auth)
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
@@ -64,6 +71,7 @@ USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
+ENV DATABASE_PATH=/app/data/auth.db
 
-# Use Node directly (standalone includes server.js)
-CMD ["node", "server.js"]
+# Run database initialization before starting server
+CMD ["/bin/sh", "-c", "/app/scripts/init-auth-db.sh && node server.js"]
