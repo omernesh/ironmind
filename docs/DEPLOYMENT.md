@@ -1,5 +1,32 @@
 # IRONMIND Deployment Guide
 
+## Production Deployment
+
+**Live Instance:** https://ironmind.chat
+**API Endpoint:** https://api.ironmind.chat
+**Server IP:** 65.108.249.67
+**SSH Key:** `~/.ssh/ironmind_hetzner`
+**Deploy User:** deploy
+**Deploy Path:** `/home/deploy/ironmind`
+
+### Accessing Production Server
+
+```bash
+# SSH into production server
+ssh -i ~/.ssh/ironmind_hetzner root@65.108.249.67
+
+# Switch to deploy user
+su - deploy
+cd ~/ironmind
+
+# Check service status
+docker compose -f infra/docker-compose.prod.yml ps
+
+# View logs
+docker compose -f infra/docker-compose.prod.yml logs -f backend
+docker compose -f infra/docker-compose.prod.yml logs -f frontend
+```
+
 ## Local Development
 
 ### Prerequisites
