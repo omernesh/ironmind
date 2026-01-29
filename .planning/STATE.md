@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Accurate, grounded answers from technical documentation with multi-source synthesis and transparent traceability
-**Current focus:** Phase 2.1 - Fix Document Ingestion Pipeline (URGENT)
+**Current focus:** Phase 2.1 Complete - Document Ingestion Pipeline Fixed
 
 ## Current Position
 
 Phase: 2.1 of 6 (Fix Document Ingestion Pipeline)
-Plan: 2 of 3 in current phase
-Status: EXECUTING URGENT FIX
-Last activity: 2026-01-29 - Completed 02.1-02-PLAN.md (Element-Aware Semantic Chunking)
+Plan: 3 of 3 in current phase
+Status: PHASE COMPLETE
+Last activity: 2026-01-29 - Completed 02.1-03-PLAN.md (Test and Re-enable Entity Extraction)
 
-Progress: [██████████] 100% (30 of 30 original plans) + 2/3 hotfix plans
+Progress: [██████████] 100% (30 of 30 original plans) + 3/3 hotfix plans
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 32 (30 original + 2 hotfix)
+- Total plans completed: 33 (30 original + 3 hotfix)
 - Average duration: 9 min
-- Total execution time: 8.1 hours
+- Total execution time: 8.2 hours
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [██████████] 100% (30 of 30 original plans) + 2/3 
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
-| 02.1-fix-document-ingestion-pipeline | 2/3 | 8m | 4m |
+| 02.1-fix-document-ingestion-pipeline | 3/3 | 12m | 4m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
 | 04-knowledge-graph-integration | 5/5 | 69m | 14m |
 | 05-multi-source-synthesis | 4/4 | 21m | 5m |
@@ -37,8 +37,8 @@ Progress: [██████████] 100% (30 of 30 original plans) + 2/3 
 
 **Recent Trend:**
 
-- Last 6 plans: 06-05 (5m), 06-06 (30m), 02.1-01 (4m), 02.1-02 (4m)
-- Trend: Executing Phase 2.1 hotfix for chunking issue
+- Last 6 plans: 06-06 (30m), 02.1-01 (4m), 02.1-02 (4m), 02.1-03 (4m)
+- Trend: Phase 2.1 hotfix COMPLETE
 
 *Updated after each plan completion*
 
@@ -159,6 +159,15 @@ Recent decisions affecting current work:
 - Implementation: Sentence-level splitting for oversized paragraphs, word-level for very long sentences
 - Implementation: Backward-compatible with both DoclingParseResult and dict input formats
 - Implementation: Markdown-based fallback when no structured elements available
+
+**From 02.1-03 execution:**
+- Implementation: Runtime chunk size validation before entity extraction (safety check)
+- Implementation: Entity extraction re-enabled by default (SKIP_ENTITY_EXTRACTION = False)
+- Implementation: If any chunk > 10K tokens, skip extraction for that document (graceful fallback)
+- Implementation: Integration test suite (12 tests) covering element-aware chunking
+- Implementation: End-to-end aerospace document simulation (103 chunks, avg 969 tokens, max 1020 tokens)
+- Implementation: Table atomicity verified (tables never split regardless of size)
+- Implementation: Backward compatibility tests for dict input format
 
 **From 03-01 execution:**
 - Implementation: OpenAI text-embedding-3-small for embeddings ($0.02/1M tokens, 1536 dimensions)
@@ -360,14 +369,14 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-**Phase 2.1 In Progress (URGENT FIX):**
+**Phase 2.1 COMPLETE (Chunking Fix):**
 
 - ✅ Plan 02.1-01 complete: DoclingClient extracts structured elements from json_content
 - ✅ Plan 02.1-02 complete: Element-aware chunker with 10K token hard limit
-- Plan 02.1-03 next: Re-enable entity extraction with smaller chunks
-- **Root cause:** Only extracting md_content from Docling produced 300K-6.7M token chunks
-- **Fix approach:** Use structured elements (TextItem, TableItem, SectionHeaderItem) for element-aware chunking
-- **Current state:** SemanticChunker now uses DoclingElements; pipeline integration next
+- ✅ Plan 02.1-03 complete: Integration tests + entity extraction re-enabled
+- **Root cause fixed:** Element-aware chunking now uses DoclingElements instead of markdown-only extraction
+- **Verification:** Simulated 60-page aerospace document produces 103 chunks with avg 969 tokens (max 1020)
+- **Entity extraction:** Re-enabled with runtime safety check (skips if chunk > 10K tokens)
 
 **Phase 1 Risks:**
 
@@ -476,6 +485,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 02.1-02-PLAN.md (Element-Aware Semantic Chunking)
+Stopped at: Completed 02.1-03-PLAN.md (Test and Re-enable Entity Extraction)
 Resume file: None
-Next action: Execute 02.1-03-PLAN.md (Pipeline Integration)
+Next action: Phase 2.1 COMPLETE - Ready for production testing
