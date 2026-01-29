@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 4 of 6 (Knowledge Graph Integration)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 04-01-PLAN.md (Graph Foundation)
+Last activity: 2026-01-29 - Completed 04-02-PLAN.md (Entity Extraction Service)
 
-Progress: [████████░░] 68% (17 of 25 plans complete)
+Progress: [████████░░] 72% (18 of 25 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
-- Average duration: 18 min
-- Total execution time: 5.77 hours
+- Total plans completed: 18
+- Average duration: 17 min
+- Total execution time: 5.84 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [████████░░] 68% (17 of 25 plans complete)
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
-| 04-knowledge-graph-integration | 1/4 | 7m | 7m |
+| 04-knowledge-graph-integration | 2/4 | 11m | 5.5m |
 
 **Recent Trend:**
-- Last 6 plans: 03-02B (2m), 03-03 (6m), 03-04 (5m), 03-05 (checkpoint), 04-01 (7m)
-- Trend: Graph foundation setup efficient (7min for schemas + client)
+- Last 6 plans: 03-03 (6m), 03-04 (5m), 03-05 (checkpoint), 04-01 (7m), 04-02 (4m)
+- Trend: Phase 4 highly efficient - entity extraction in 4min (OpenAI Structured Outputs)
 
 *Updated after each plan completion*
 
@@ -189,6 +189,17 @@ Recent decisions affecting current work:
 - Implementation: Index creation on entity.name, entity.type, entity.user_id for query performance
 - Implementation: Subgraph export with nodes/edges lists for graph-aware retrieval
 
+**From 04-02 execution:**
+- Implementation: OpenAI GPT-4o-2024-08-06 with Structured Outputs for 100% schema compliance
+- Implementation: beta.chat.completions.parse() method for Pydantic response parsing
+- Implementation: Temperature=0 for deterministic entity extraction
+- Implementation: Asyncio.gather with Semaphore(5) for concurrent API calls (rate limit control)
+- Implementation: Graceful error handling returns empty GraphExtraction on API failures
+- Implementation: Acronym expansion in normalize_entity_name() using ACRONYM_MAP
+- Implementation: Entity resolution with LLM disambiguation for cross-document deduplication
+- Implementation: Post-processing fills doc_id/chunk_id metadata not in LLM output
+- Implementation: Extraction metrics tracking (extractions, entities, relationships, failures)
+
 ### Pending Todos
 
 None yet.
@@ -224,10 +235,11 @@ None yet.
 **Phase 4 In Progress:**
 
 - ✅ Plan 04-01 complete: FalkorDB client, Pydantic schemas, graph storage foundation
+- ✅ Plan 04-02 complete: EntityExtractor with OpenAI Structured Outputs and acronym expansion
 - Graph foundation ready for entity extraction and graph-aware retrieval
-- Entity/relationship schemas enforce fixed ontology (prevents schema drift)
-- User-scoped isolation ensures multi-tenant graph safety
-- Remaining risks: Entity extraction accuracy, entity resolution quality (70% threshold target)
+- LLM-based extraction with 100% schema compliance via Structured Outputs
+- Entity resolution handles acronym normalization and cross-document deduplication
+- Remaining risks: Entity extraction accuracy in production, entity resolution quality (70% threshold target)
 
 **Phase 6 Risks (Research Flag):**
 
@@ -237,6 +249,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 04-01-PLAN.md (Graph Foundation)
+Stopped at: Completed 04-02-PLAN.md (Entity Extraction Service)
 Resume file: None
-Next action: Execute 04-02-PLAN.md (Entity Extraction Service) - LLM-based extraction with Structured Outputs
+Next action: Execute 04-03-PLAN.md (Graph-Aware Retrieval) - Enhance RAG with graph context
