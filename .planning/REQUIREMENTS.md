@@ -39,12 +39,12 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 
 ### Knowledge Graph (KG)
 
-- [ ] **KG-01**: System extracts entities from chunks (services, APIs, components, configs, error types)
-- [ ] **KG-02**: System extracts relationships between entities (depends_on, configures, connects_to)
-- [ ] **KG-03**: System stores graph in FalkorDB (lightweight graph database with vector support)
-- [ ] **KG-04**: System validates entity extraction quality (>70% accuracy threshold)
-- [ ] **KG-05**: Graph-aware retrieval incorporates related entities for multi-component questions
-- [ ] **KG-06**: Backend provides optional debug endpoint GET /api/debug/graph/sample for inspection
+- [x] **KG-01**: System extracts entities from chunks (services, APIs, components, configs, error types)
+- [x] **KG-02**: System extracts relationships between entities (depends_on, configures, connects_to)
+- [x] **KG-03**: System stores graph in FalkorDB (lightweight graph database with vector support)
+- [x] **KG-04**: System validates entity extraction quality (>70% accuracy threshold)
+- [x] **KG-05**: Graph-aware retrieval incorporates related entities for multi-component questions
+- [x] **KG-06**: Backend provides optional debug endpoint GET /api/debug/graph/sample for inspection
 
 ### Retrieval (RETRIEVAL)
 
@@ -106,7 +106,7 @@ Requirements for initial release (Feb 1, 2026 deadline). Each maps to roadmap ph
 - [ ] **INFRA-06**: Frontend points to backend via environment-configurable base URL
 - [x] **INFRA-07**: All secrets managed via environment variables (no hardcoding)
 - [x] **INFRA-08**: docling-serve deployed as separate service with API endpoint
-- [ ] **INFRA-09**: FalkorDB deployed as graph database service
+- [x] **INFRA-09**: FalkorDB deployed as graph database service
 - [ ] **INFRA-10**: Hetzner API key configured for cloud deployment automation
 
 ### Documentation (DOCS)
@@ -213,12 +213,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LLM-02 | Phase 3 | Pending |
 | LLM-03 | Phase 3 | Pending |
 | LLM-04 | Phase 3 | Pending |
-| KG-01 | Phase 4 | Pending |
-| KG-02 | Phase 4 | Pending |
-| KG-03 | Phase 4 | Pending |
-| KG-04 | Phase 4 | Pending |
-| KG-05 | Phase 4 | Pending |
-| KG-06 | Phase 4 | Pending |
+| KG-01 | Phase 4 | Complete |
+| KG-02 | Phase 4 | Complete |
+| KG-03 | Phase 4 | Complete |
+| KG-04 | Phase 4 | Complete |
+| KG-05 | Phase 4 | Complete |
+| KG-06 | Phase 4 | Complete |
 | OBS-01 | Phase 1 | Complete |
 | OBS-02 | Phase 1 | Complete |
 | OBS-03 | Phase 1 | Complete |
@@ -241,7 +241,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-06 | Phase 6 | Pending |
 | INFRA-07 | Phase 1 | Complete |
 | INFRA-08 | Phase 2 | Complete |
-| INFRA-09 | Phase 4 | Pending |
+| INFRA-09 | Phase 4 | Complete |
 | INFRA-10 | Phase 6 | Deferred |
 | DOCS-01 | Phase 6 | Pending |
 | DOCS-02 | Phase 6 | Pending |

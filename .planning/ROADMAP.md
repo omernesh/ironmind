@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Infrastructure Foundation** - Docker setup, auth, health checks, basic FastAPI structure
 - [x] **Phase 2: Document Processing Pipeline** - Docling integration, semantic chunking, metadata preservation
 - [x] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Qwen reranking, basic Q&A
-- [ ] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
+- [x] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
 - [ ] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
 - [ ] **Phase 6: Frontend Integration & Deployment** - IRONMIND UI, document upload, source traceability, Hetzner deployment
 
@@ -100,11 +100,11 @@ Plans:
 **Plans**: 5 plans in 4 waves
 
 Plans:
-- [ ] 04-01-PLAN.md - Graph schemas and FalkorDB client with configuration
-- [ ] 04-02-PLAN.md - LLM-based entity/relationship extraction with Structured Outputs
-- [ ] 04-03-PLAN.md - Pipeline integration for graph extraction during ingestion
-- [ ] 04-04-PLAN.md - Graph-aware dual-channel retrieval
-- [ ] 04-05-PLAN.md - Debug endpoint and end-to-end verification
+- [x] 04-01-PLAN.md - Graph schemas and FalkorDB client with configuration
+- [x] 04-02-PLAN.md - LLM-based entity/relationship extraction with Structured Outputs
+- [x] 04-03-PLAN.md - Pipeline integration for graph extraction during ingestion
+- [x] 04-04-PLAN.md - Graph-aware dual-channel retrieval
+- [x] 04-05-PLAN.md - Debug endpoint and end-to-end verification
 
 ### Phase 5: Multi-Source Synthesis
 **Goal**: Advanced multi-document reasoning with cross-reference detection and comprehensive citation aggregation
@@ -148,6 +148,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
 | 2. Document Processing Pipeline | 5/5 | Complete | 2026-01-28 |
 | 3. Core RAG with Hybrid Retrieval | 6/6 | Complete | 2026-01-29 |
-| 4. Knowledge Graph Integration | 0/5 | Planned | - |
+| 4. Knowledge Graph Integration | 5/5 | Complete | 2026-01-29 |
 | 5. Multi-Source Synthesis | 0/TBD | Not started | - |
 | 6. Frontend Integration & Deployment | 0/TBD | Not started | - |
