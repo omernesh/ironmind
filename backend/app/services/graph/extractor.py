@@ -11,6 +11,7 @@ from openai import AsyncOpenAI
 from app.config import settings
 from app.core.logging import get_logger
 from app.services.graph.schemas import GraphExtraction, Entity, Relationship
+from app.services.retriever import ACRONYM_MAP
 
 logger = get_logger()
 
@@ -164,13 +165,102 @@ class EntityExtractor:
         Returns:
             Normalized name (title case, acronyms expanded, whitespace stripped)
         """
+        import re
+
         # Strip extra whitespace
         name = " ".join(name.split())
 
         # Convert to title case for consistency
         name = name.title()
 
-        return name
+        # Expand known acronyms if name is pure acronym or starts with acronym
+        words = name.split()
+        expanded_words = []
+        for word in words:
+            # Check if word is a known acronym (uppercase)
+            if word.upper() in ACRONYM_MAP:
+                # Expand: "GPS" -> "Global Positioning System (GPS)"
+                full_form = ACRONYM_MAP[word.upper()]
+                expanded_words.append(f"{full_form} ({word.upper()})")
+            else:
+                expanded_words.append(word)
+
+        return " ".join(expanded_words)
+
+    async def resolve_entity(
+        self,
+        entity: Entity,
+        existing_entities: List[str],
+        context: str
+    ) -> str:
+        """Resolve entity name against existing entities for deduplication.
+
+        Args:
+            entity: Entity to resolve
+            existing_entities: List of existing entity names in graph
+            context: Context text for disambiguation
+
+        Returns:
+            Canonical entity name (existing name if matched, new name otherwise)
+        """
+        # Exact match - return existing name
+        if entity.name in existing_entities:
+            return entity.name
+
+        # Normalize and check again
+        normalized_name = self.normalize_entity_name(entity.name)
+        for existing in existing_entities:
+            if self.normalize_entity_name(existing) == normalized_name:
+                return existing
+
+        # Check for potential acronym matches
+        # E.g., "GPS" might match "Global Positioning System"
+        candidates = []
+        entity_upper = entity.name.upper()
+        for existing in existing_entities:
+            # Check if entity is acronym form of existing
+            if entity_upper in ACRONYM_MAP and ACRONYM_MAP[entity_upper].lower() in existing.lower():
+                candidates.append(existing)
+            # Check if existing is acronym form of entity
+            existing_upper = existing.upper()
+            if existing_upper in ACRONYM_MAP and ACRONYM_MAP[existing_upper].lower() in entity.name.lower():
+                candidates.append(existing)
+
+        # If candidates found, use LLM to disambiguate
+        if candidates:
+            try:
+                prompt = f"""Is '{entity.name}' the same entity as any of these existing entities?
+Existing entities: {', '.join(candidates)}
+
+Context where '{entity.name}' appears:
+{context[:500]}
+
+Respond with ONLY the matching entity name if they're the same, or 'NEW' if '{entity.name}' is a distinct entity."""
+
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0,
+                    max_tokens=50
+                )
+
+                result = response.choices[0].message.content.strip()
+
+                # If LLM matched to existing entity, return it
+                if result != 'NEW' and result in candidates:
+                    logger.info("entity_resolved",
+                              entity_name=entity.name,
+                              resolved_to=result,
+                              method="llm_disambiguation")
+                    return result
+
+            except Exception as e:
+                logger.warning("entity_resolution_failed",
+                             entity_name=entity.name,
+                             error=str(e))
+
+        # No match found - return normalized new name
+        return normalized_name
 
     def post_process_extraction(
         self,
