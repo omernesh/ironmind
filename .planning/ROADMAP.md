@@ -14,6 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure Foundation** - Docker setup, auth, health checks, basic FastAPI structure
 - [x] **Phase 2: Document Processing Pipeline** - Docling integration, semantic chunking, metadata preservation
+- [x] **Phase 2.1: Fix Document Ingestion Pipeline** (INSERTED) - Fix chunking bugs, proper Docling usage, evaluate Kotaemon
 - [x] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Qwen reranking, basic Q&A
 - [x] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
 - [x] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
@@ -61,6 +62,32 @@ Plans:
 - [x] 02-03-PLAN.md - Semantic chunking pipeline with txtai indexing
 - [x] 02-04-PLAN.md - Status polling endpoint and end-to-end pipeline verification
 - [x] 02-05-PLAN.md - [GAP CLOSURE] Fix docling output format mismatch for chunking
+
+### Phase 2.1: Fix Document Ingestion Pipeline (INSERTED)
+
+**Goal:** Fix critical document chunking issues by using Docling's structured JSON output (DoclingDocument) for element-aware chunking instead of markdown parsing
+**Depends on:** Phase 2
+**Plans:** 3 plans in 3 waves
+**Success Criteria** (what must be TRUE):
+  1. DoclingClient extracts structured elements (TextItem, TableItem, SectionHeaderItem) from json_content
+  2. SemanticChunker uses element boundaries instead of markdown heading patterns
+  3. All chunks are under 10K tokens (well under OpenAI 300K limit)
+  4. Tables are never split (atomic chunks regardless of size)
+  5. Entity extraction is re-enabled (SKIP_ENTITY_EXTRACTION = False)
+  6. Large aerospace documents produce properly-sized chunks
+
+Plans:
+
+- [x] 02.1-01-PLAN.md - Enhance DoclingClient to extract structured DoclingDocument elements (Wave 1)
+- [x] 02.1-02-PLAN.md - Rewrite SemanticChunker for element-aware chunking with table atomicity (Wave 2)
+- [x] 02.1-03-PLAN.md - Test chunking fix and re-enable entity extraction (Wave 3)
+
+**Details:**
+Emergency insertion to address critical production issue: custom chunker producing massive chunks (300K-6.7M tokens) that exceed OpenAI API limits. Root cause: only extracting markdown (md_content) instead of Docling's structured JSON output (json_content containing DoclingDocument with body tree, typed elements). Fix involves:
+1. DoclingClient to request and parse json_content with TextItem, TableItem, SectionHeaderItem
+2. SemanticChunker to chunk by element boundaries (tables atomic, headings start chunks)
+3. 10K token hard limit with runtime safety checks
+4. Re-enable entity extraction after verification
 
 ### Phase 3: Core RAG with Hybrid Retrieval
 **Goal**: Working end-to-end RAG pipeline with hybrid retrieval (semantic + BM25) and Qwen3 reranking for technical document Q&A
@@ -156,6 +183,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
 | 2. Document Processing Pipeline | 5/5 | Complete | 2026-01-28 |
+| 2.1. Fix Document Ingestion Pipeline | 3/3 | Complete | 2026-01-29 |
 | 3. Core RAG with Hybrid Retrieval | 6/6 | Complete | 2026-01-29 |
 | 4. Knowledge Graph Integration | 5/5 | Complete | 2026-01-29 |
 | 5. Multi-Source Synthesis | 4/4 | Complete | 2026-01-29 |

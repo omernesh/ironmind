@@ -82,11 +82,11 @@ class DoclingClient:
                     document = result.get("document", result)  # Handle both nested and flat response
 
                     # Extract structured elements from json_content
-                    json_content = document.get("json_content", {})
+                    json_content = document.get("json_content", {}) or {}
                     elements = self._extract_elements(json_content) if json_content else []
 
                     # Get markdown as fallback
-                    md_content = document.get("md_content", "")
+                    md_content = document.get("md_content", "") or ""
 
                     # Get page count from various possible locations
                     page_count = (
