@@ -11,6 +11,7 @@ class ProcessingStatus(str, Enum):
     UPLOADING = "Uploading"
     PARSING = "Parsing"
     CHUNKING = "Chunking"
+    GRAPH_EXTRACTING = "GraphExtracting"
     INDEXING = "Indexing"
     DONE = "Done"
     FAILED = "Failed"
