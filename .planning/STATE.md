@@ -289,7 +289,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+1 todo captured:
+- **Pre-ingest test documents for system verification** (testing) - Add sample aerospace/technical documents to docs/ and create seed script for immediate testing on deployment
 
 ### Blockers/Concerns
 
