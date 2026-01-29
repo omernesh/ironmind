@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 ## Current Position
 
-Phase: 3 of 6 (Core RAG with Hybrid Retrieval)
-Plan: 6 of 6 in current phase
-Status: Complete
-Last activity: 2026-01-29 - Completed Phase 3 with full RAG pipeline verification
+Phase: 4 of 6 (Knowledge Graph Integration)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-29 - Completed 04-01-PLAN.md (Graph Foundation)
 
-Progress: [█████████░] 100% (Phase 3 complete, 3 of 6 phases done)
+Progress: [████████░░] 68% (17 of 25 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
-- Average duration: 19 min
-- Total execution time: 5.65 hours
+- Total plans completed: 17
+- Average duration: 18 min
+- Total execution time: 5.77 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [█████████░] 100% (Phase 3 complete, 3 of 6 phases
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
+| 04-knowledge-graph-integration | 1/4 | 7m | 7m |
 
 **Recent Trend:**
-- Last 6 plans: 03-01 (3m), 03-02A (3m), 03-02B (2m), 03-03 (6m), 03-04 (5m), 03-05 (checkpoint)
-- Trend: RAG service implementation highly efficient (3-6min per plan)
+- Last 6 plans: 03-02B (2m), 03-03 (6m), 03-04 (5m), 03-05 (checkpoint), 04-01 (7m)
+- Trend: Graph foundation setup efficient (7min for schemas + client)
 
 *Updated after each plan completion*
 
@@ -178,6 +179,16 @@ Recent decisions affecting current work:
 - Implementation: Score statistics (min/max/avg) for retrieval performance monitoring
 - Implementation: 15 aerospace/defense domain acronyms in ACRONYM_MAP for query enhancement
 
+**From 04-01 execution:**
+- Implementation: Pydantic Literal constraints for entity types (hardware, software, configuration, error) and relationship types (depends_on, configures, connects_to, is_part_of)
+- Implementation: MERGE-based upsert by (name + user_id) prevents duplicate entities
+- Implementation: Parameterized Cypher queries prevent injection attacks
+- Implementation: User-scoped graph isolation via user_id filtering in all queries
+- Implementation: Depth-limited BFS traversal (default: 2 hops) prevents exponential expansion
+- Implementation: Relationship context field stores sentence for LLM grounding
+- Implementation: Index creation on entity.name, entity.type, entity.user_id for query performance
+- Implementation: Subgraph export with nodes/edges lists for graph-aware retrieval
+
 ### Pending Todos
 
 None yet.
@@ -210,11 +221,13 @@ None yet.
 - ✅ 22/26 tests passing (4 minor auth code mismatches: 403 vs 401)
 - ⚠️ Performance verification pending: <10s query time and 2-3 concurrent users (requires live testing)
 
-**Phase 4 Risks (Research Flag):**
+**Phase 4 In Progress:**
 
-- Knowledge graph entity extraction quality highly domain-dependent
-- 70% accuracy threshold may be difficult to achieve without manual tuning
-- Research suggests 30-40% incorrect edges without entity resolution
+- ✅ Plan 04-01 complete: FalkorDB client, Pydantic schemas, graph storage foundation
+- Graph foundation ready for entity extraction and graph-aware retrieval
+- Entity/relationship schemas enforce fixed ontology (prevents schema drift)
+- User-scoped isolation ensures multi-tenant graph safety
+- Remaining risks: Entity extraction accuracy, entity resolution quality (70% threshold target)
 
 **Phase 6 Risks (Research Flag):**
 
@@ -224,6 +237,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Phase 3 Complete - Full RAG pipeline verified
+Stopped at: Completed 04-01-PLAN.md (Graph Foundation)
 Resume file: None
-Next action: Plan Phase 4 (Knowledge Graph Integration) - entity/relation extraction, graph-aware retrieval
+Next action: Execute 04-02-PLAN.md (Entity Extraction Service) - LLM-based extraction with Structured Outputs
