@@ -76,10 +76,29 @@ class EntityExtractor:
         """
         start_time = time.time()
 
+        # Check token count - OpenAI Structured Outputs has 300K token limit
+        # GPT-4o context window is 128K, so use 100K as safe upper bound
+        import tiktoken
+        encoder = tiktoken.encoding_for_model("gpt-4o")
+        token_count = len(encoder.encode(chunk_text))
+
+        MAX_TOKENS = 100000  # Safe limit for GPT-4o with structured outputs
+
+        if token_count > MAX_TOKENS:
+            logger.warning("chunk_too_large_skipping",
+                         chunk_id=chunk_id,
+                         doc_id=doc_id,
+                         token_count=token_count,
+                         max_tokens=MAX_TOKENS,
+                         text_length=len(chunk_text))
+            # Return empty extraction for oversized chunks
+            return GraphExtraction(entities=[], relationships=[])
+
         logger.info("extraction_started",
                    chunk_id=chunk_id,
                    doc_id=doc_id,
-                   text_length=len(chunk_text))
+                   text_length=len(chunk_text),
+                   token_count=token_count)
 
         try:
             # Use Structured Outputs to guarantee schema compliance

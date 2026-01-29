@@ -27,7 +27,7 @@ tiktoken>=0.5.0
 # Install CPU-only torch first to avoid CUDA downloads
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.4
-txtai>=7.0.0
+txtai[ann]>=7.0.0
 
 # HTTP client with retry
 httpx>=0.25.0
