@@ -104,29 +104,38 @@ class DocumentPipeline:
             entity_count = 0
             relationship_count = 0
 
+            # EMERGENCY: Skip entity extraction to allow document processing
+            # Large aerospace documents cause token limit errors in extraction
+            SKIP_ENTITY_EXTRACTION = True
+
             try:
-                await self._update_status(doc_id, user_id, ProcessingStatus.GRAPH_EXTRACTING, "Extracting entities for knowledge graph")
+                if SKIP_ENTITY_EXTRACTION:
+                    logger.info("graph_extraction_skipped",
+                               doc_id=doc_id,
+                               reason="Large document protection")
+                else:
+                    await self._update_status(doc_id, user_id, ProcessingStatus.GRAPH_EXTRACTING, "Extracting entities for knowledge graph")
 
-                # Clear any existing graph data for this document (for re-ingestion)
-                self.graph_store.delete_document_entities(doc_id, user_id)
+                    # Clear any existing graph data for this document (for re-ingestion)
+                    self.graph_store.delete_document_entities(doc_id, user_id)
 
-                # Extract from each chunk
-                for chunk in chunks:
-                    extraction = await self.extractor.extract_from_chunk(
-                        chunk_text=chunk.text,
-                        doc_id=doc_id,
-                        chunk_id=chunk.chunk_id
-                    )
+                    # Extract from each chunk
+                    for chunk in chunks:
+                        extraction = await self.extractor.extract_from_chunk(
+                            chunk_text=chunk.text,
+                            doc_id=doc_id,
+                            chunk_id=chunk.chunk_id
+                        )
 
-                    # Store entities
-                    for entity in extraction.entities:
-                        self.graph_store.add_entity(entity, user_id)
-                        entity_count += 1
+                        # Store entities
+                        for entity in extraction.entities:
+                            self.graph_store.add_entity(entity, user_id)
+                            entity_count += 1
 
-                    # Store relationships
-                    for rel in extraction.relationships:
-                        self.graph_store.add_relationship(rel, user_id)
-                        relationship_count += 1
+                        # Store relationships
+                        for rel in extraction.relationships:
+                            self.graph_store.add_relationship(rel, user_id)
+                            relationship_count += 1
 
                 processing_log.append(ProcessingLogEntry(
                     stage="GraphExtracting",
