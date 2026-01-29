@@ -37,3 +37,6 @@ backoff>=2.2.0
 litellm>=1.0.0  # For DeepInfra reranker API
 openai>=1.0.0  # For embeddings + LLM
 redis>=5.0.0  # Optional, for caching
+
+# Knowledge Graph
+falkordb>=1.4.0  # Graph database Python client

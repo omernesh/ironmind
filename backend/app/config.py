@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     # Cache Settings
     CACHE_TTL_SECONDS: int = 300  # 5 min default
 
+    # Knowledge Graph - FalkorDB
+    FALKORDB_URL: str = "redis://falkordb:6379"  # Docker service
+    FALKORDB_GRAPH_NAME: str = "aerospace_kb"  # Graph database name
+    GRAPH_TRAVERSAL_DEPTH: int = 2  # Max hops for queries
+    ENTITY_SIMILARITY_THRESHOLD: float = 0.85  # For resolution
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins into list."""
