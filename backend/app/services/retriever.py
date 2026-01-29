@@ -3,6 +3,7 @@ import time
 from typing import List, Dict, Any, Optional
 from app.services.indexer import TxtaiIndexer
 from app.services.graph.graph_retriever import GraphRetriever
+from app.services.graph.doc_relationships import DocumentRelationshipStore
 from app.config import settings
 from app.core.logging import get_logger
 
@@ -58,10 +59,12 @@ class HybridRetriever:
     def __init__(
         self,
         indexer: Optional[TxtaiIndexer] = None,
-        graph_retriever: Optional[GraphRetriever] = None
+        graph_retriever: Optional[GraphRetriever] = None,
+        doc_rel_store: Optional[DocumentRelationshipStore] = None
     ):
         self.indexer = indexer or TxtaiIndexer()
         self.graph_retriever = graph_retriever or GraphRetriever()
+        self.doc_rel_store = doc_rel_store or DocumentRelationshipStore()
 
     async def retrieve(
         self,
@@ -155,6 +158,61 @@ class HybridRetriever:
 
         # Merge channels
         merged_chunks = self._merge_channels(semantic_chunks, graph_chunks)
+
+        # Expand with related documents (for multi-source synthesis)
+        doc_expansion_enabled = getattr(settings, 'DOC_RELATIONSHIP_EXPANSION_ENABLED', True)
+        if doc_expansion_enabled and len(merged_chunks) > 0:
+            try:
+                # Get doc IDs from current results
+                current_doc_ids = list(set(
+                    c.get('doc_id') for c in merged_chunks
+                    if c.get('doc_id') and c.get('source') != 'graph'
+                ))
+
+                if len(current_doc_ids) >= 1:
+                    # Find related documents
+                    related_docs = self.doc_rel_store.get_related_documents(
+                        doc_ids=current_doc_ids,
+                        user_id=user_id,
+                        min_strength=0.5
+                    )
+
+                    # Get IDs of docs not already in results
+                    new_doc_ids = [
+                        d['doc_id'] for d in related_docs
+                        if d['doc_id'] not in current_doc_ids
+                    ][:2]  # Limit expansion to 2 related docs
+
+                    if new_doc_ids:
+                        # Fetch chunks from related docs
+                        for related_doc_id in new_doc_ids:
+                            related_chunks = self.indexer.hybrid_search(
+                                query=expanded_query,
+                                user_id=user_id,
+                                limit=3,  # Fewer chunks per related doc
+                                weights=weights,
+                                threshold=threshold
+                            )
+
+                            # Filter to only chunks from the related doc and add if not already present
+                            for chunk in related_chunks:
+                                if chunk.get('doc_id') == related_doc_id and chunk not in merged_chunks:
+                                    # Mark as expanded
+                                    chunk['expanded_from_relationship'] = True
+                                    merged_chunks.append(chunk)
+
+                        logger.info(
+                            "doc_relationship_expansion_complete",
+                            request_id=request_id,
+                            original_docs=len(current_doc_ids),
+                            expanded_docs=len(new_doc_ids),
+                            total_chunks=len(merged_chunks)
+                        )
+
+            except Exception as e:
+                logger.warning("doc_relationship_expansion_failed",
+                              request_id=request_id,
+                              error=str(e))
 
         latency_ms = int((time.time() - start_time) * 1000)
 
