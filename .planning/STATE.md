@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 4 of 6 (Knowledge Graph Integration)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 04-02-PLAN.md (Entity Extraction Service)
+Last activity: 2026-01-29 - Completed 04-03-PLAN.md (Pipeline Integration)
 
-Progress: [████████░░] 72% (18 of 25 plans complete)
+Progress: [████████░░] 76% (19 of 25 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
-- Average duration: 17 min
-- Total execution time: 5.84 hours
+- Total plans completed: 19
+- Average duration: 16 min
+- Total execution time: 5.89 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [████████░░] 72% (18 of 25 plans complete)
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
-| 04-knowledge-graph-integration | 2/4 | 11m | 5.5m |
+| 04-knowledge-graph-integration | 3/4 | 14m | 4.7m |
 
 **Recent Trend:**
-- Last 6 plans: 03-03 (6m), 03-04 (5m), 03-05 (checkpoint), 04-01 (7m), 04-02 (4m)
-- Trend: Phase 4 highly efficient - entity extraction in 4min (OpenAI Structured Outputs)
+- Last 6 plans: 03-04 (5m), 03-05 (checkpoint), 04-01 (7m), 04-02 (4m), 04-03 (3m)
+- Trend: Phase 4 highly efficient - pipeline integration in 3min (well-designed APIs)
 
 *Updated after each plan completion*
 
@@ -200,6 +200,15 @@ Recent decisions affecting current work:
 - Implementation: Post-processing fills doc_id/chunk_id metadata not in LLM output
 - Implementation: Extraction metrics tracking (extractions, entities, relationships, failures)
 
+**From 04-03 execution:**
+- Implementation: GRAPH_EXTRACTING stage inserted between CHUNKING and INDEXING in pipeline
+- Implementation: Stage weights rebalanced: Parsing 35%, Chunking 15%, GraphExtracting 15%, Indexing 25%
+- Implementation: EntityExtractor and GraphStore initialized in DocumentPipeline
+- Implementation: Re-ingestion cleanup via delete_document_entities() before extraction
+- Implementation: Entity/relationship counts stored in Document model for metrics tracking
+- Implementation: Graceful error handling: graph extraction failures log warning but don't crash pipeline
+- Implementation: Graph extraction as optional enhancement, not critical path for document ingestion
+
 ### Pending Todos
 
 None yet.
@@ -236,10 +245,11 @@ None yet.
 
 - ✅ Plan 04-01 complete: FalkorDB client, Pydantic schemas, graph storage foundation
 - ✅ Plan 04-02 complete: EntityExtractor with OpenAI Structured Outputs and acronym expansion
-- Graph foundation ready for entity extraction and graph-aware retrieval
-- LLM-based extraction with 100% schema compliance via Structured Outputs
-- Entity resolution handles acronym normalization and cross-document deduplication
-- Remaining risks: Entity extraction accuracy in production, entity resolution quality (70% threshold target)
+- ✅ Plan 04-03 complete: Pipeline integration with graph extraction stage
+- Knowledge graph populated automatically during document ingestion
+- Graph extraction integrated between chunking and indexing stages
+- Entity/relationship extraction with graceful failure handling
+- Remaining: Plan 04-04 (Graph-Aware Retrieval) - enhance RAG with graph context
 
 **Phase 6 Risks (Research Flag):**
 
@@ -249,6 +259,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 04-02-PLAN.md (Entity Extraction Service)
+Stopped at: Completed 04-03-PLAN.md (Pipeline Integration)
 Resume file: None
-Next action: Execute 04-03-PLAN.md (Graph-Aware Retrieval) - Enhance RAG with graph context
+Next action: Execute 04-04-PLAN.md (Graph-Aware Retrieval) - Enhance RAG with graph context
