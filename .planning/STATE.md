@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Accurate, grounded answers from technical documentation with multi-source synthesis and transparent traceability
-**Current focus:** Phase 6 - Frontend Integration & Deployment (Plan 3 complete)
+**Current focus:** Phase 6 - Frontend Integration & Deployment (Plan 4 complete)
 
 ## Current Position
 
 Phase: 6 of 6 (Frontend Integration & Deployment)
-Plan: 3 of 3 in current phase
+Plan: 4 of 4 in current phase
 Status: Plan complete
-Last activity: 2026-01-29 - Completed 06-03-PLAN.md (Chat Interface with Citations)
+Last activity: 2026-01-29 - Completed 06-04-PLAN.md (Production Docker Deployment)
 
-Progress: [█████████░] 100% (27 of 27 plans complete)
+Progress: [██████████] 100% (28 of 28 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27
+- Total plans completed: 28
 - Average duration: 10 min
-- Total execution time: 7.2 hours
+- Total execution time: 7.3 hours
 
 **By Phase:**
 
@@ -32,12 +32,12 @@ Progress: [█████████░] 100% (27 of 27 plans complete)
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
 | 04-knowledge-graph-integration | 5/5 | 69m | 14m |
 | 05-multi-source-synthesis | 4/4 | 21m | 5m |
-| 06-frontend-integration-deployment | 3/3 | 11m | 4m |
+| 06-frontend-integration-deployment | 4/4 | 17m | 4m |
 
 **Recent Trend:**
 
-- Last 6 plans: 05-02 (5m), 05-03 (5m), 05-04 (5m), 06-01 (3m), 06-02 (5m), 06-03 (3m)
-- Trend: Phase 6 plans extremely fast - UI integration with existing APIs (4m avg)
+- Last 6 plans: 05-03 (5m), 05-04 (5m), 06-01 (3m), 06-02 (5m), 06-03 (3m), 06-04 (6m)
+- Trend: Phase 6 plans extremely fast - UI integration and deployment (4m avg)
 
 *Updated after each plan completion*
 
@@ -317,6 +317,20 @@ Recent decisions affecting current work:
 - Implementation: Conversation history support (last 10 messages = 5 turns)
 - Implementation: User-friendly error messages mapped from HTTP status codes (400, 401, 404, 500)
 
+**From 06-04 execution:**
+- Implementation: Caddy reverse proxy with automatic HTTPS certificate management
+- Implementation: Subdomain routing (api.domain.com) for API endpoints
+- Implementation: Multi-stage Docker builds with separate deps, builder, runner stages
+- Implementation: Build-time NEXT_PUBLIC_* environment variables for Next.js standalone builds
+- Implementation: Gunicorn with 4 Uvicorn workers (2x CPU cores for I/O bound workloads)
+- Implementation: 120s timeout for document processing operations (docling can take 30-60s)
+- Implementation: Graceful shutdown with 30s drain period for in-flight requests
+- Implementation: Non-root users (nextjs:nodejs, appuser) in Docker for security
+- Implementation: Persistent volumes for SSL certificates (caddy_data) and application data
+- Implementation: No port exposure for frontend/backend (Caddy handles all external traffic on 80/443)
+- Implementation: Security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy)
+- Implementation: Health checks with service dependencies for startup ordering
+
 ### Pending Todos
 
 2 todos captured:
@@ -393,6 +407,7 @@ Recent decisions affecting current work:
 - ✅ Plan 06-01 complete: IAI-branded landing page with logo, usage explanation, and POC disclaimer
 - ✅ Plan 06-02 complete: Document upload UI with drag-drop, progress tracking, and status display
 - ✅ Plan 06-03 complete: Chat interface with inline citations and multi-source synthesis indicator
+- ✅ Plan 06-04 complete: Production Docker deployment with Caddy HTTPS and optimized images
 - Landing page displays IAI logo in fixed header
 - Usage explanation: "Upload up to 10 documents and chat with them"
 - POC disclaimer prominently displayed in yellow warning box
@@ -407,11 +422,14 @@ Recent decisions affecting current work:
 - Expandable citation cards showing filename, page, snippet
 - Multi-source synthesis indicator with document count
 - Empty state, loading animation, auto-scroll, error handling
-- **Complete user flow: upload → process → chat → answer with citations**
+- Production Docker Compose with Caddy reverse proxy for automatic HTTPS
+- Optimized multi-stage Dockerfiles (frontend standalone, backend Gunicorn with 4 workers)
+- Production environment template with domain configuration
+- **Complete system: upload → process → chat → answer with citations + production deployment ready**
 
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 06-03-PLAN.md (Chat Interface with Citations)
+Stopped at: Completed 06-04-PLAN.md (Production Docker Deployment)
 Resume file: None
-Next action: Phase 6 complete - ready for deployment (06-04) or end-to-end testing
+Next action: All 28 plans complete - system ready for production deployment to Hetzner VPS
