@@ -106,7 +106,9 @@ async def chat(
             answer=generation_result["answer"],
             citations=generation_result["citations"],
             request_id=request_id,
-            diagnostics=diagnostics
+            diagnostics=diagnostics,
+            synthesis_mode=generation_result.get("synthesis_mode", False),
+            source_doc_count=generation_result.get("source_doc_count", 1)
         )
 
     except Exception as e:
