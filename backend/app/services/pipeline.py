@@ -10,7 +10,7 @@ from app.services.docling_client import DoclingClient, DoclingError
 from app.services.chunker import SemanticChunker
 from app.services.indexer import TxtaiIndexer
 from app.services.storage import StorageService
-from app.services.graph import EntityExtractor, GraphStore
+from app.services.graph import EntityExtractor, GraphStore, DocumentRelationshipStore, CrossReferenceDetector
 from app.models.documents import ProcessingStatus, ProcessingLogEntry
 from app.config import settings
 
@@ -32,6 +32,8 @@ class DocumentPipeline:
         self.storage = StorageService(settings.DATA_DIR)
         self.extractor = EntityExtractor()
         self.graph_store = GraphStore()
+        self.doc_rel_store = DocumentRelationshipStore()
+        self.cross_ref_detector = CrossReferenceDetector()
 
     async def process_document(
         self,
@@ -151,6 +153,73 @@ class DocumentPipeline:
                     error=str(e)
                 ))
 
+            # Stage 3.5: DOCUMENT RELATIONSHIPS
+            stage_start = time.time()
+            doc_relationship_count = 0
+
+            try:
+                # Get list of existing documents for this user
+                existing_docs = await self.db.list_user_documents(user_id)
+                existing_doc_list = [
+                    {"doc_id": d.doc_id, "filename": d.filename}
+                    for d in existing_docs
+                    if d.doc_id != doc_id and d.status == ProcessingStatus.DONE
+                ]
+
+                if existing_doc_list:
+                    # Get full text for cross-reference detection
+                    doc_text = parse_result.get("md_content", "")
+                    if not doc_text:
+                        # Fallback to concatenated sections
+                        sections = parse_result.get("sections", [])
+                        doc_text = "\n".join(s.get("content", "") for s in sections)
+
+                    # Detect cross-references
+                    relationships = await self.cross_ref_detector.detect_cross_references(
+                        doc_id=doc_id,
+                        doc_text=doc_text,
+                        user_id=user_id,
+                        existing_docs=existing_doc_list
+                    )
+
+                    # Add document node
+                    self.doc_rel_store.add_document_node(
+                        doc_id=doc_id,
+                        filename=doc.filename,
+                        user_id=user_id,
+                        page_count=page_count,
+                        chunk_count=len(chunks)
+                    )
+
+                    # Store relationships
+                    for rel in relationships:
+                        if self.doc_rel_store.add_relationship(rel, user_id):
+                            doc_relationship_count += 1
+
+                processing_log.append(ProcessingLogEntry(
+                    stage="DocumentRelationships",
+                    started_at=datetime.fromtimestamp(stage_start, timezone.utc),
+                    completed_at=datetime.now(timezone.utc),
+                    duration_ms=int((time.time() - stage_start) * 1000)
+                ))
+
+                logger.info("document_relationships_extracted",
+                           doc_id=doc_id,
+                           relationship_count=doc_relationship_count)
+
+            except Exception as e:
+                # Log warning but continue (relationships are enhancement, not critical)
+                logger.warning("document_relationship_extraction_failed",
+                              doc_id=doc_id,
+                              error=str(e))
+                processing_log.append(ProcessingLogEntry(
+                    stage="DocumentRelationships",
+                    started_at=datetime.fromtimestamp(stage_start, timezone.utc),
+                    completed_at=datetime.now(timezone.utc),
+                    duration_ms=int((time.time() - stage_start) * 1000),
+                    error=str(e)
+                ))
+
             # Stage 4: INDEXING
             stage_start = time.time()
             await self._update_status(doc_id, user_id, ProcessingStatus.INDEXING, "Indexing chunks in txtai")
@@ -174,6 +243,7 @@ class DocumentPipeline:
             doc.chunk_count = indexed_count
             doc.entity_count = entity_count
             doc.relationship_count = relationship_count
+            doc.doc_relationship_count = doc_relationship_count
             doc.processing_log.extend(processing_log)
             await self.db.update_document(doc)
 
@@ -237,9 +307,10 @@ class DocumentPipeline:
 # Stage weights for progress estimation
 STAGE_WEIGHTS = {
     "Uploading": 0.10,
-    "Parsing": 0.35,
+    "Parsing": 0.30,
     "Chunking": 0.15,
     "GraphExtracting": 0.15,
+    "DocumentRelationships": 0.05,
     "Indexing": 0.25,
     "Complete": 1.0
 }

@@ -213,6 +213,22 @@ class DocumentDatabase:
 
         return [self._row_to_document(row) for row in rows]
 
+    async def list_user_documents(
+        self,
+        user_id: str,
+        status: Optional[ProcessingStatus] = None
+    ) -> List[Document]:
+        """Alias for list_documents_by_user for consistency.
+
+        Args:
+            user_id: User identifier
+            status: Optional status filter
+
+        Returns:
+            List of Document models
+        """
+        return await self.list_documents_by_user(user_id, status)
+
     async def delete_document(self, doc_id: str) -> bool:
         """Delete document record.
 

@@ -57,6 +57,7 @@ class Document(BaseModel):
     chunk_count: Optional[int] = Field(None, description="Total chunks created")
     entity_count: Optional[int] = Field(None, description="Total entities extracted to knowledge graph")
     relationship_count: Optional[int] = Field(None, description="Total relationships extracted to knowledge graph")
+    doc_relationship_count: Optional[int] = Field(None, description="Total document-level relationships detected")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Document creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
