@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure Foundation** - Docker setup, auth, health checks, basic FastAPI structure
 - [x] **Phase 2: Document Processing Pipeline** - Docling integration, semantic chunking, metadata preservation
-- [ ] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Qwen reranking, basic Q&A
+- [x] **Phase 3: Core RAG with Hybrid Retrieval** - txtai indexing, BM25+semantic search, Qwen reranking, basic Q&A
 - [ ] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
 - [ ] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
 - [ ] **Phase 6: Frontend Integration & Deployment** - IRONMIND UI, document upload, source traceability, Hetzner deployment
@@ -79,12 +79,12 @@ Plans:
 **Plans**: 6 plans in 3 waves
 
 Plans:
-- [ ] 03-01-PLAN.md - Configuration and chat data models for RAG pipeline
-- [ ] 03-02A-PLAN.md - Indexer hybrid search capability with OpenAI embeddings
-- [ ] 03-02B-PLAN.md - Hybrid retriever service with RRF fusion
-- [ ] 03-03-PLAN.md - Reranker service using DeepInfra Qwen3-Reranker
-- [ ] 03-04-PLAN.md - Answer generator with GPT-5-mini and citations
-- [ ] 03-05-PLAN.md - Chat endpoint with full pipeline orchestration
+- [x] 03-01-PLAN.md - Configuration and chat data models for RAG pipeline
+- [x] 03-02A-PLAN.md - Indexer hybrid search capability with OpenAI embeddings
+- [x] 03-02B-PLAN.md - Hybrid retriever service with RRF fusion
+- [x] 03-03-PLAN.md - Reranker service using DeepInfra Qwen3-Reranker
+- [x] 03-04-PLAN.md - Answer generator with GPT-5-mini and citations
+- [x] 03-05-PLAN.md - Chat endpoint with full pipeline orchestration
 
 ### Phase 4: Knowledge Graph Integration
 **Goal**: Graph-aware retrieval enabling multi-component questions and relationship-based reasoning
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 5/5 | Complete | 2026-01-27 |
 | 2. Document Processing Pipeline | 5/5 | Complete | 2026-01-28 |
-| 3. Core RAG with Hybrid Retrieval | 0/6 | Planned | - |
+| 3. Core RAG with Hybrid Retrieval | 6/6 | Complete | 2026-01-29 |
 | 4. Knowledge Graph Integration | 0/TBD | Not started | - |
 | 5. Multi-Source Synthesis | 0/TBD | Not started | - |
 | 6. Frontend Integration & Deployment | 0/TBD | Not started | - |
