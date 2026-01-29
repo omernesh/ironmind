@@ -4,11 +4,14 @@ This service extracts entities from queries and expands context via graph traver
 enabling relationship-based question answering.
 """
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from app.config import settings
 from app.core.logging import get_logger
 from app.services.graph.graph_store import GraphStore
-from app.services.graph.extractor import EntityExtractor
+
+# Lazy import to avoid circular dependency
+if TYPE_CHECKING:
+    from app.services.graph.extractor import EntityExtractor
 
 logger = get_logger()
 
@@ -25,7 +28,7 @@ class GraphRetriever:
     def __init__(
         self,
         graph_store: Optional[GraphStore] = None,
-        extractor: Optional[EntityExtractor] = None
+        extractor: Optional["EntityExtractor"] = None
     ):
         """Initialize GraphRetriever with dependencies.
 
@@ -34,7 +37,13 @@ class GraphRetriever:
             extractor: EntityExtractor for entity extraction (uses default if None)
         """
         self.graph_store = graph_store or GraphStore()
-        self.extractor = extractor or EntityExtractor()
+
+        # Lazy import to avoid circular dependency
+        if extractor is None:
+            from app.services.graph.extractor import EntityExtractor
+            extractor = EntityExtractor()
+
+        self.extractor = extractor
         self.traversal_depth = settings.GRAPH_TRAVERSAL_DEPTH
 
     async def extract_query_entities(self, query: str) -> List[str]:

@@ -2,6 +2,7 @@
 import time
 from typing import List, Dict, Any, Optional
 from app.services.indexer import TxtaiIndexer
+from app.services.graph.graph_retriever import GraphRetriever
 from app.config import settings
 from app.core.logging import get_logger
 
@@ -54,8 +55,13 @@ class HybridRetriever:
     diagnostics logging, and structured response format.
     """
 
-    def __init__(self, indexer: Optional[TxtaiIndexer] = None):
+    def __init__(
+        self,
+        indexer: Optional[TxtaiIndexer] = None,
+        graph_retriever: Optional[GraphRetriever] = None
+    ):
         self.indexer = indexer or TxtaiIndexer()
+        self.graph_retriever = graph_retriever or GraphRetriever()
 
     async def retrieve(
         self,
@@ -107,8 +113,8 @@ class HybridRetriever:
                    query_length=len(query),
                    expanded=expanded_query != query)
 
-        # Call indexer.hybrid_search() - THE KEY WIRING
-        chunks = self.indexer.hybrid_search(
+        # Channel 1: Semantic + BM25 hybrid search
+        semantic_chunks = self.indexer.hybrid_search(
             query=expanded_query,
             user_id=user_id,
             limit=limit,
@@ -116,27 +122,106 @@ class HybridRetriever:
             threshold=threshold
         )
 
+        # Channel 2: Graph context (if enabled)
+        graph_chunks = []
+        graph_latency_ms = 0
+        graph_entity_count = 0
+        graph_enabled = getattr(settings, 'GRAPH_RETRIEVAL_ENABLED', True)
+
+        if graph_enabled:
+            graph_start = time.time()
+            try:
+                graph_chunks = await self.graph_retriever.retrieve_graph_context(
+                    query=query,
+                    user_id=user_id,
+                    request_id=request_id
+                )
+                graph_latency_ms = int((time.time() - graph_start) * 1000)
+
+                # Extract entity count from graph chunks
+                unique_entities = set(c.get("entity_name") for c in graph_chunks if c.get("entity_name"))
+                graph_entity_count = len(unique_entities)
+
+                logger.info("graph_retrieval_complete",
+                           request_id=request_id,
+                           graph_chunk_count=len(graph_chunks),
+                           entity_count=graph_entity_count,
+                           latency_ms=graph_latency_ms)
+            except Exception as e:
+                logger.warning("graph_retrieval_failed",
+                             request_id=request_id,
+                             error=str(e))
+                # Continue without graph context
+
+        # Merge channels
+        merged_chunks = self._merge_channels(semantic_chunks, graph_chunks)
+
         latency_ms = int((time.time() - start_time) * 1000)
 
         # Calculate score statistics for diagnostics
-        scores = [c.get("score", 0) for c in chunks]
+        scores = [c.get("score", 0) for c in merged_chunks]
         diagnostics = {
             "query_original": query,
             "query_expanded": expanded_query,
             "score_min": min(scores) if scores else 0,
             "score_max": max(scores) if scores else 0,
-            "score_avg": sum(scores) / len(scores) if scores else 0
+            "score_avg": sum(scores) / len(scores) if scores else 0,
+            "graph_entity_count": graph_entity_count,
+            "graph_context_count": len(graph_chunks),
+            "graph_latency_ms": graph_latency_ms
         }
 
         logger.info("retrieval_complete",
                    request_id=request_id,
-                   count=len(chunks),
+                   count=len(merged_chunks),
+                   semantic_count=len(semantic_chunks),
+                   graph_count=len(graph_chunks),
                    latency_ms=latency_ms,
                    score_range=f"{diagnostics['score_min']:.3f}-{diagnostics['score_max']:.3f}")
 
         return {
-            "chunks": chunks,
-            "count": len(chunks),
+            "chunks": merged_chunks,
+            "count": len(merged_chunks),
             "latency_ms": latency_ms,
             "diagnostics": diagnostics
         }
+
+    def _merge_channels(
+        self,
+        semantic: List[Dict[str, Any]],
+        graph: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Merge semantic search and graph context channels.
+
+        Priority: semantic chunks first (higher confidence from hybrid search).
+        Deduplication: Skip graph chunks if entity already covered in semantic text.
+
+        Args:
+            semantic: Chunks from hybrid search (semantic + BM25)
+            graph: Chunks from graph retrieval (entity subgraphs)
+
+        Returns:
+            Merged list with semantic chunks + unique graph context
+        """
+        # Start with semantic chunks (higher confidence)
+        merged = list(semantic)
+
+        # Track entity names mentioned in semantic chunks
+        semantic_text = " ".join(c.get("text", "") for c in semantic).lower()
+
+        # Add graph chunks that provide NEW entity information
+        for graph_chunk in graph:
+            entity_name = graph_chunk.get("entity_name", "")
+
+            # Skip if entity already covered in semantic chunks
+            if entity_name.lower() in semantic_text:
+                continue
+
+            # Add unique graph context
+            merged.append(graph_chunk)
+
+            # Maintain limit (don't exceed 2x original limit)
+            if len(merged) >= len(semantic) * 2:
+                break
+
+        return merged
