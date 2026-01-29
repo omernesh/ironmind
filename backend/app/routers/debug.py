@@ -9,6 +9,7 @@ import structlog
 
 from app.middleware.auth import get_current_user_id
 from app.services.graph.graph_store import GraphStore
+from app.services.graph.doc_relationships import DocumentRelationshipStore
 
 logger = structlog.get_logger(__name__)
 
@@ -166,3 +167,104 @@ async def get_graph_stats(user_id: str = Depends(get_current_user_id)):
     )
 
     return stats
+
+
+@router.get("/doc-relationships")
+async def get_document_relationships(
+    user_id: str = Depends(get_current_user_id),
+    doc_id: Optional[str] = Query(None, description="Filter by specific document"),
+    format: str = Query("edgelist", description="Output format: edgelist or cytoscape")
+):
+    """
+    Debug endpoint: Inspect document relationship graph.
+
+    Returns relationships between documents (CITES, SHARES_ENTITIES).
+
+    Formats:
+    - edgelist: Simple JSON list of relationships
+    - cytoscape: Format for Cytoscape.js visualization
+    """
+    doc_rel_store = DocumentRelationshipStore()
+
+    if doc_id:
+        # Get relationships for specific document
+        relationships = doc_rel_store.get_related_documents(
+            doc_ids=[doc_id],
+            user_id=user_id,
+            min_strength=0.0  # Include all for debugging
+        )
+    else:
+        # Get all relationships for user
+        relationships = doc_rel_store.get_all_relationships(user_id)
+
+    if format == "cytoscape":
+        return _format_doc_relationships_for_cytoscape(relationships)
+    else:
+        return {
+            "user_id": user_id,
+            "relationship_count": len(relationships),
+            "relationships": relationships,
+            "format": "edgelist"
+        }
+
+
+@router.get("/doc-relationships/stats")
+async def get_document_relationship_stats(
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Debug endpoint: Get document relationship statistics.
+
+    Returns counts of CITES and SHARES_ENTITIES relationships.
+    """
+    doc_rel_store = DocumentRelationshipStore()
+    counts = doc_rel_store.count_relationships(user_id)
+
+    return {
+        "user_id": user_id,
+        "relationship_counts": counts,
+        "total": sum(counts.values())
+    }
+
+
+def _format_doc_relationships_for_cytoscape(relationships: List[Dict]) -> Dict:
+    """Format relationships for Cytoscape.js visualization."""
+    nodes = {}
+    edges = []
+
+    for rel in relationships:
+        source_id = rel.get('source_doc_id', '')
+        target_id = rel.get('target_doc_id', '') or rel.get('doc_id', '')
+
+        # Add source node
+        if source_id and source_id not in nodes:
+            nodes[source_id] = {
+                "data": {
+                    "id": source_id,
+                    "label": rel.get('source_filename', source_id[:8])
+                }
+            }
+
+        # Add target node
+        if target_id and target_id not in nodes:
+            nodes[target_id] = {
+                "data": {
+                    "id": target_id,
+                    "label": rel.get('target_filename', rel.get('filename', target_id[:8]))
+                }
+            }
+
+        # Add edge
+        edges.append({
+            "data": {
+                "source": source_id,
+                "target": target_id,
+                "label": rel.get('relationship_type', 'related'),
+                "strength": rel.get('strength', 0.5)
+            }
+        })
+
+    return {
+        "nodes": list(nodes.values()),
+        "edges": edges
+    }
