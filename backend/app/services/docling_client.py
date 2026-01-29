@@ -105,7 +105,7 @@ class DoclingClient:
                         elements=elements,
                         md_content=md_content,
                         page_count=page_count,
-                        raw_json=json_content if settings.DEBUG else None
+                        raw_json=None  # Set to json_content for debugging if needed
                     )
 
                 except httpx.HTTPStatusError as e:
