@@ -119,15 +119,24 @@ class DocumentPipeline:
             entity_count = 0
             relationship_count = 0
 
-            # EMERGENCY: Skip entity extraction to allow document processing
-            # Large aerospace documents cause token limit errors in extraction
-            SKIP_ENTITY_EXTRACTION = True
+            # Validate chunk sizes before extraction (runtime safety check)
+            max_chunk_tokens = max(c.token_count for c in chunks) if chunks else 0
+            if max_chunk_tokens > 10000:
+                logger.warning("large_chunks_detected",
+                              doc_id=doc_id,
+                              max_tokens=max_chunk_tokens,
+                              skipping_extraction=True)
+                SKIP_ENTITY_EXTRACTION = True
+            else:
+                # Entity extraction re-enabled after chunking fix (02.1)
+                # Chunks are now properly sized (< 10K tokens) via element-aware chunking
+                SKIP_ENTITY_EXTRACTION = False
 
             try:
                 if SKIP_ENTITY_EXTRACTION:
                     logger.info("graph_extraction_skipped",
                                doc_id=doc_id,
-                               reason="Large document protection")
+                               reason="Large chunks detected - safety skip")
                 else:
                     await self._update_status(doc_id, user_id, ProcessingStatus.GRAPH_EXTRACTING, "Extracting entities for knowledge graph")
 
