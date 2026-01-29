@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 4 of 6 (Knowledge Graph Integration)
-Plan: 4 of 4 in current phase
+Plan: 5 of 5 in current phase
 Status: Phase complete
-Last activity: 2026-01-29 - Completed 04-04-PLAN.md (Graph-Aware Retrieval)
+Last activity: 2026-01-29 - Completed 04-05-PLAN.md (Graph Integration Debug & Testing)
 
-Progress: [████████░░] 80% (20 of 25 plans complete)
+Progress: [████████░░] 84% (21 of 25 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: 15 min
-- Total execution time: 6.02 hours
+- Total execution time: 6.8 hours
 
 **By Phase:**
 
@@ -30,11 +30,12 @@ Progress: [████████░░] 80% (20 of 25 plans complete)
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
-| 04-knowledge-graph-integration | 4/4 | 22m | 5.5m |
+| 04-knowledge-graph-integration | 5/5 | 69m | 14m |
 
 **Recent Trend:**
-- Last 6 plans: 03-05 (checkpoint), 04-01 (7m), 04-02 (4m), 04-03 (3m), 04-04 (8m)
-- Trend: Phase 4 complete - highly efficient with average 5.5min/plan (well-designed APIs + graph foundation)
+
+- Last 6 plans: 04-01 (7m), 04-02 (4m), 04-03 (3m), 04-04 (8m), 04-05 (47m)
+- Trend: Phase 4 complete - debug endpoints and integration testing took longer but delivered comprehensive verification
 
 *Updated after each plan completion*
 
@@ -222,6 +223,16 @@ Recent decisions affecting current work:
 - Implementation: Dual-channel retrieval pattern: Channel 1 (semantic+BM25) + Channel 2 (graph context)
 - Implementation: Merge limit: graph chunks capped at 2x semantic count to avoid explosion
 
+**From 04-05 execution:**
+
+- Implementation: Debug endpoints under /api/debug namespace for inspection tools
+- Implementation: Multi-format response pattern (edgelist vs cytoscape) via query parameter
+- Implementation: GraphStore statistics methods (count_entities, count_relationships, get_entity_type_counts, list_entities)
+- Implementation: Integration tests skip OpenAI/FalkorDB tests when services unavailable (graceful degradation)
+- Implementation: Test fixtures with cleanup to ensure test isolation
+- Implementation: format_edgelist() and format_cytoscape() helpers for graph visualization formats
+- Implementation: Stats endpoint provides entity/relationship counts by type for monitoring extraction quality
+
 ### Pending Todos
 
 None yet.
@@ -260,10 +271,13 @@ None yet.
 - ✅ Plan 04-02 complete: EntityExtractor with OpenAI Structured Outputs and acronym expansion
 - ✅ Plan 04-03 complete: Pipeline integration with graph extraction stage
 - ✅ Plan 04-04 complete: Graph-aware retrieval with dual-channel merging
-- Knowledge graph populated automatically during document ingestion
+- ✅ Plan 04-05 complete: Debug endpoints, statistics API, integration tests
+- Knowledge graph populated automatically during document ingestion (verified: 69 entities, 45 relationships)
 - Graph-aware retrieval enhances RAG with relationship context
 - Citations transparently mark graph-derived vs document-stated information
 - End-to-end flow: upload → extract entities → answer relationship questions
+- Debug endpoints for graph inspection (/api/debug/graph/sample, /api/debug/graph/stats)
+- Comprehensive integration tests cover schemas, CRUD, extraction, retrieval, statistics
 
 **Phase 6 Risks (Research Flag):**
 
@@ -273,6 +287,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 04-04-PLAN.md (Graph-Aware Retrieval)
+Stopped at: Completed 04-05-PLAN.md (Graph Integration Debug & Testing)
 Resume file: None
-Next action: Begin Phase 05 (Testing & Validation) - End-to-end verification
+Next action: Begin Phase 05 (Testing & Validation) - End-to-end system verification
