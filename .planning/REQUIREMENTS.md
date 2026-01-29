@@ -204,8 +204,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHAT-02 | Phase 3 | Pending |
 | CHAT-03 | Phase 3 | Pending |
 | CHAT-04 | Phase 3 | Pending |
-| CHAT-05 | Phase 3 | Pending |
-| CHAT-06 | Phase 3 | Pending |
+| CHAT-05 | Phase 3 | Complete |
+| CHAT-06 | Phase 3 | Complete |
 | CHAT-07 | Phase 3 | Pending |
 | CHAT-08 | Phase 3 | Pending |
 | CHAT-09 | Phase 3 | Pending |
