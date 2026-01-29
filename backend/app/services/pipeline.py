@@ -236,10 +236,11 @@ class DocumentPipeline:
 
 # Stage weights for progress estimation
 STAGE_WEIGHTS = {
-    "Uploading": 0.1,
-    "Parsing": 0.4,
-    "Chunking": 0.2,
-    "Indexing": 0.3,
+    "Uploading": 0.10,
+    "Parsing": 0.35,
+    "Chunking": 0.15,
+    "GraphExtracting": 0.15,
+    "Indexing": 0.25,
     "Complete": 1.0
 }
 
