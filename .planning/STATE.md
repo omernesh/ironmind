@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 2.1 of 6 (Fix Document Ingestion Pipeline)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: EXECUTING URGENT FIX
-Last activity: 2026-01-29 - Completed 02.1-01-PLAN.md (Structured Docling Output Extraction)
+Last activity: 2026-01-29 - Completed 02.1-02-PLAN.md (Element-Aware Semantic Chunking)
 
-Progress: [██████████] 100% (30 of 30 original plans) + 1/3 hotfix plans
+Progress: [██████████] 100% (30 of 30 original plans) + 2/3 hotfix plans
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31 (30 original + 1 hotfix)
+- Total plans completed: 32 (30 original + 2 hotfix)
 - Average duration: 9 min
-- Total execution time: 8.0 hours
+- Total execution time: 8.1 hours
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [██████████] 100% (30 of 30 original plans) + 1/3 
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
-| 02.1-fix-document-ingestion-pipeline | 1/3 | 4m | 4m |
+| 02.1-fix-document-ingestion-pipeline | 2/3 | 8m | 4m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
 | 04-knowledge-graph-integration | 5/5 | 69m | 14m |
 | 05-multi-source-synthesis | 4/4 | 21m | 5m |
@@ -37,7 +37,7 @@ Progress: [██████████] 100% (30 of 30 original plans) + 1/3 
 
 **Recent Trend:**
 
-- Last 6 plans: 06-04 (6m), 06-05 (5m), 06-06 (30m), 02.1-01 (4m)
+- Last 6 plans: 06-05 (5m), 06-06 (30m), 02.1-01 (4m), 02.1-02 (4m)
 - Trend: Executing Phase 2.1 hotfix for chunking issue
 
 *Updated after each plan completion*
@@ -148,6 +148,17 @@ Recent decisions affecting current work:
 - Implementation: Body tree traversal with $ref pointer resolution for reading order
 - Implementation: Backward-compatible dict format for chunker input
 - Implementation: Request json,md formats from docling-serve for structured + markdown output
+
+**From 02.1-02 execution:**
+- Implementation: Element-aware chunking using DoclingElement boundaries instead of markdown headings
+- Implementation: Tables are ATOMIC - never split regardless of size
+- Implementation: Section headers start new chunks
+- Implementation: 10K token hard limit (well under OpenAI 300K) for all chunks
+- Implementation: _enforce_max_tokens() emergency split for any oversized chunks
+- Implementation: _validate_and_log_statistics() logs min/max/avg tokens and table count
+- Implementation: Sentence-level splitting for oversized paragraphs, word-level for very long sentences
+- Implementation: Backward-compatible with both DoclingParseResult and dict input formats
+- Implementation: Markdown-based fallback when no structured elements available
 
 **From 03-01 execution:**
 - Implementation: OpenAI text-embedding-3-small for embeddings ($0.02/1M tokens, 1536 dimensions)
@@ -352,11 +363,11 @@ Recent decisions affecting current work:
 **Phase 2.1 In Progress (URGENT FIX):**
 
 - ✅ Plan 02.1-01 complete: DoclingClient extracts structured elements from json_content
-- Plan 02.1-02 next: Element-aware chunker with 10K token hard limit
-- Plan 02.1-03 pending: Re-enable entity extraction with smaller chunks
+- ✅ Plan 02.1-02 complete: Element-aware chunker with 10K token hard limit
+- Plan 02.1-03 next: Re-enable entity extraction with smaller chunks
 - **Root cause:** Only extracting md_content from Docling produced 300K-6.7M token chunks
 - **Fix approach:** Use structured elements (TextItem, TableItem, SectionHeaderItem) for element-aware chunking
-- **Current state:** DoclingParseResult provides typed elements; chunker update needed
+- **Current state:** SemanticChunker now uses DoclingElements; pipeline integration next
 
 **Phase 1 Risks:**
 
@@ -465,6 +476,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 02.1-01-PLAN.md (Structured Docling Output Extraction)
+Stopped at: Completed 02.1-02-PLAN.md (Element-Aware Semantic Chunking)
 Resume file: None
-Next action: Execute 02.1-02-PLAN.md (Element-Aware Chunker)
+Next action: Execute 02.1-03-PLAN.md (Pipeline Integration)
