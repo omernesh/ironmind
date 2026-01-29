@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 5 of 6 (Multi-Source Synthesis)
-Plan: 3 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-29 - Completed 05-03-PLAN.md (Multi-Source Synthesis Prompting)
+Last activity: 2026-01-29 - Completed 05-02-PLAN.md (Document Cross-Reference Detection)
 
-Progress: [█████████░] 92% (23 of 25 plans complete)
+Progress: [█████████░] 88% (22 of 25 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
-- Average duration: 13 min
-- Total execution time: 7.0 hours
+- Total plans completed: 22
+- Average duration: 14 min
+- Total execution time: 6.9 hours
 
 **By Phase:**
 
@@ -31,12 +31,12 @@ Progress: [█████████░] 92% (23 of 25 plans complete)
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
 | 04-knowledge-graph-integration | 5/5 | 69m | 14m |
-| 05-multi-source-synthesis | 3/4 | 10m | 3m |
+| 05-multi-source-synthesis | 2/4 | 11m | 6m |
 
 **Recent Trend:**
 
-- Last 6 plans: 04-03 (3m), 04-04 (8m), 04-05 (47m), 05-01 (6m), 05-02 (skipped), 05-03 (4m)
-- Trend: Phase 5 moving fast - pure logic changes (4-6m), no external service dependencies
+- Last 6 plans: 04-03 (3m), 04-04 (8m), 04-05 (47m), 05-01 (6m), 05-02 (5m)
+- Trend: Phase 5 maintaining fast velocity - pure logic/integration changes (5-6m avg)
 
 *Updated after each plan completion*
 
@@ -247,6 +247,22 @@ Recent decisions affecting current work:
 - Implementation: networkx for document relationship graph algorithms
 - Implementation: Relationship evidence stored as list (citation text or shared entity names)
 
+**From 05-02 execution:**
+
+- Implementation: CrossReferenceDetector with dual-signal detection (explicit citations + shared entities)
+- Implementation: Explicit citation patterns: DOC_CODE_PATTERN, SEE_DOC_PATTERN, SECTION_REF_PATTERN
+- Implementation: Fuzzy matching with 70% Levenshtein similarity for citation text vs filename comparison
+- Implementation: Shared entity detection requires 2+ common entities between documents
+- Implementation: Priority-based deduplication: explicit citations take precedence over shared entities
+- Implementation: Strength scoring: explicit citations 1.0, shared entities 0.5 + (count-2)*0.1, capped at 0.9
+- Implementation: Document relationship extraction as pipeline stage 3.5 (after GraphExtracting, before Indexing)
+- Implementation: STAGE_WEIGHTS rebalanced: DocumentRelationships 5% (Parsing reduced to 30%)
+- Implementation: list_entities_for_doc method added to GraphStore for entity comparison
+- Implementation: list_user_documents alias method added to DocumentDatabase for consistency
+- Implementation: doc_relationship_count field added to Document model for metrics tracking
+- Implementation: Relationship extraction only against DONE documents (skip Processing/Failed)
+- Implementation: Graceful error handling: relationship extraction failures log warning, don't crash pipeline
+
 **From 05-03 execution:**
 
 - Implementation: should_activate_synthesis_mode() detects 2+ documents with 2+ chunks each
@@ -308,15 +324,18 @@ None yet.
 **Phase 5 Progress:**
 
 - ✅ Plan 05-01 complete: Document relationship schemas and storage foundation
-- ✅ Plan 05-03 complete: Multi-source synthesis prompting
+- ✅ Plan 05-02 complete: Document cross-reference detection and pipeline integration
 - DocumentRelationship schema with explicit_citation and shared_entities types
 - DocumentRelationshipStore provides CRUD for document-level graph
+- CrossReferenceDetector with dual-signal detection (explicit citations + shared entities)
+- Explicit citation detection via regex patterns (doc codes, "See Document X", section refs)
+- Shared entity detection with 2+ common entities threshold and acronym expansion
+- Document relationship extraction integrated as pipeline stage 3.5
+- Priority-based scoring: explicit citations 1.0, shared entities 0.5-0.9
 - Citation model extended with multi_source and related_doc_ids fields
 - ChatResponse tracks synthesis_mode and source_doc_count
-- Synthesis mode detection: 2+ documents with 2+ chunks each
-- Topic-organized prompting with Chain-of-Thought reasoning
-- Compact citation notation [1-3] with adjacency detection
-- Ready for debug endpoints (05-04)
+- Graceful error handling: relationship extraction failures don't crash pipeline
+- Ready for multi-source synthesis prompting (05-03) and debug endpoints (05-04)
 
 **Phase 6 Risks (Research Flag):**
 
@@ -326,6 +345,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 05-03-PLAN.md (Multi-Source Synthesis Prompting)
+Stopped at: Completed 05-02-PLAN.md (Document Cross-Reference Detection)
 Resume file: None
-Next action: Continue Phase 05 (Multi-Source Synthesis) - Plan 05-04 (Debug Endpoints for Synthesis)
+Next action: Continue Phase 05 (Multi-Source Synthesis) - Plan 05-03 (Multi-Source Synthesis Pipeline)
