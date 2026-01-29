@@ -560,3 +560,26 @@ class GraphStore:
                 user_id=user_id
             )
             return []
+
+    def list_entities_for_doc(self, doc_id: str, user_id: str) -> List[Dict[str, Any]]:
+        """List entities from a specific document.
+
+        Args:
+            doc_id: Document identifier
+            user_id: User identifier for isolation
+
+        Returns:
+            List of entity property dicts
+        """
+        try:
+            query = """
+            MATCH (e:Entity {doc_id: $doc_id, user_id: $user_id})
+            RETURN e
+            """
+            params = {"doc_id": doc_id, "user_id": user_id}
+            result = self.graph.query(query, params=params)
+
+            return [dict(row[0].properties) for row in result.result_set]
+        except Exception as e:
+            logger.error("list_entities_for_doc_failed", doc_id=doc_id, error=str(e))
+            return []

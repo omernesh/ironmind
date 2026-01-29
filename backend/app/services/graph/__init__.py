@@ -4,6 +4,7 @@ from .extractor import EntityExtractor
 from .graph_store import GraphStore
 from .graph_retriever import GraphRetriever
 from .doc_relationships import DocumentRelationshipStore
+from .cross_reference import CrossReferenceDetector
 
 __all__ = [
     "Entity",
@@ -13,5 +14,6 @@ __all__ = [
     "EntityExtractor",
     "GraphStore",
     "GraphRetriever",
-    "DocumentRelationshipStore"
+    "DocumentRelationshipStore",
+    "CrossReferenceDetector"
 ]
