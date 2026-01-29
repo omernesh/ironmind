@@ -150,7 +150,7 @@ class SemanticChunker:
 
                 current_chunk["section_title"] = element.text
 
-            # Tables are ATOMIC - always their own chunk
+            # Tables - keep atomic if small, split if too large
             if isinstance(element, DoclingTableElement):
                 # Flush current text chunk first
                 if current_chunk["texts"]:
@@ -158,21 +158,42 @@ class SemanticChunker:
                     current_chunk = self._new_chunk()
                     current_tokens = 0
 
-                # Create table chunk (atomic, never split)
-                table_chunk = {
-                    "texts": [element.text],
-                    "page_start": element.page_number,
-                    "page_end": element.page_number,
-                    "section_title": current_section,
-                    "is_table": True,
-                    "token_count": element_tokens
-                }
-                chunks.append(table_chunk)
-
-                logger.debug("table_chunk_created",
-                            tokens=element_tokens,
-                            rows=element.num_rows,
-                            cols=element.num_cols)
+                # If table is small enough, keep it atomic
+                if element_tokens <= self.max_tokens:
+                    table_chunk = {
+                        "texts": [element.text],
+                        "page_start": element.page_number,
+                        "page_end": element.page_number,
+                        "section_title": current_section,
+                        "is_table": True,
+                        "token_count": element_tokens
+                    }
+                    chunks.append(table_chunk)
+                    logger.debug("table_chunk_created",
+                                tokens=element_tokens,
+                                rows=element.num_rows,
+                                cols=element.num_cols)
+                else:
+                    # Table is too large - split it
+                    logger.warning("splitting_large_table",
+                                  tokens=element_tokens,
+                                  rows=element.num_rows,
+                                  cols=element.num_cols)
+                    split_texts = self._split_large_text(element.text)
+                    for i, split_text in enumerate(split_texts):
+                        split_tokens = self.count_tokens(split_text)
+                        table_chunk = {
+                            "texts": [split_text],
+                            "page_start": element.page_number,
+                            "page_end": element.page_number,
+                            "section_title": current_section,
+                            "is_table": True,
+                            "token_count": split_tokens
+                        }
+                        chunks.append(table_chunk)
+                        logger.debug("table_chunk_split_created",
+                                    part=i+1,
+                                    tokens=split_tokens)
                 continue
 
             # Text elements - group until target reached
