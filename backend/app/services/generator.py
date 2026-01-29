@@ -11,12 +11,14 @@ logger = get_logger()
 
 # System prompt for technical documentation assistant
 SYSTEM_PROMPT = """You are a technical documentation assistant for aerospace/defense systems.
-Answer questions using ONLY the provided document excerpts.
+Answer questions using ONLY the provided document excerpts and knowledge graph information.
 Include citation numbers [1], [2], etc. for each claim you make.
 If information is not in the documents, say "Based on the available documents, I cannot find information about X."
 Use concise, technical language (2-4 sentences).
 When sources conflict, acknowledge the disagreement with citations.
-Use Markdown for code snippets, formulas, or structured data."""
+Use Markdown for code snippets, formulas, or structured data.
+
+When citing knowledge graph information, note that these are system-inferred relationships based on extracted entities. Mark such citations clearly."""
 
 
 class Generator:
@@ -76,7 +78,13 @@ class Generator:
         # Build context from chunks
         context_parts = []
         for idx, chunk in enumerate(chunks, 1):
-            citation_header = f"[{idx}: {chunk['filename']}, p.{chunk['page_range']}]"
+            # Distinguish graph-derived context from document chunks
+            if chunk.get('source') == 'graph':
+                entity_name = chunk.get('entity_name', 'Unknown')
+                citation_header = f"[{idx}: Knowledge Graph - {entity_name}]"
+            else:
+                citation_header = f"[{idx}: {chunk['filename']}, p.{chunk['page_range']}]"
+
             context_parts.append(f"{citation_header}\n{chunk['text']}\n")
         context = "\n".join(context_parts)
 
@@ -121,6 +129,9 @@ Answer the question using only the context above. Include citation numbers [1], 
                 if len(chunk['text']) > 200:
                     snippet += "..."
 
+                # Determine source type
+                source_type = chunk.get('source', 'document')
+
                 citation = Citation(
                     id=idx,
                     doc_id=chunk['doc_id'],
@@ -128,7 +139,8 @@ Answer the question using only the context above. Include citation numbers [1], 
                     page_range=chunk['page_range'],
                     section_title=chunk.get('section_title'),
                     snippet=snippet,
-                    score=chunk.get('rerank_score')
+                    score=chunk.get('rerank_score', chunk.get('score')),
+                    source=source_type  # 'document' or 'graph'
                 )
                 citations.append(citation)
 

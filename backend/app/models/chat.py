@@ -13,6 +13,7 @@ class Citation(BaseModel):
     section_title: Optional[str] = Field(None, description="Section heading if available")
     snippet: str = Field(..., description="First 200 chars of chunk text")
     score: Optional[float] = Field(None, description="Reranker score for diagnostics")
+    source: str = Field(default="document", description="Source type: 'document' or 'graph'")
 
     class Config:
         json_schema_extra = {
