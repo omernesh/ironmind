@@ -29,10 +29,6 @@ export const auth = betterAuth({
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ],
-  // Advanced options for database initialization
-  advanced: {
-    generateId: () => crypto.randomUUID(),
-  },
 });
 
 // Export auth type for use in other files

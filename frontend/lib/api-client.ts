@@ -7,6 +7,8 @@
  * 3. Attach token as Bearer header to all backend requests
  */
 
+import axios from "axios";
+
 // Backend API URL - browser requests go to localhost
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -125,6 +127,33 @@ export const apiClient = {
     }
 
     return response.json();
+  },
+
+  async uploadFile(endpoint: string, file: File, onProgress?: (progress: number) => void): Promise<any> {
+    const token = await getBackendToken();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axios.post(`${API_URL}${endpoint}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+        }
+      },
+    });
+
+    return response.data;
+  },
+
+  async delete(endpoint: string, options?: FetchOptions): Promise<void> {
+    const response = await fetchWithAuth(endpoint, { ...options, method: "DELETE" });
+    if (!response.ok && response.status !== 204) {
+      throw new ApiError(response.status, await response.text());
+    }
   },
 };
 
