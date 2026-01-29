@@ -193,6 +193,58 @@ class SemanticChunker:
 
         return merged
 
+    def _split_oversized_paragraph(self, para: str) -> List[str]:
+        """Split a paragraph that exceeds max tokens by sentences or fixed boundaries.
+
+        Args:
+            para: Paragraph text that's too large
+
+        Returns:
+            List of smaller text chunks
+        """
+        # Try splitting by sentences first
+        import re
+        sentences = re.split(r'(?<=[.!?])\s+', para)
+
+        chunks = []
+        current = ""
+        current_tokens = 0
+
+        for sentence in sentences:
+            sentence_tokens = self.count_tokens(sentence)
+
+            # If a single sentence is too large, split by fixed token boundaries
+            if sentence_tokens > self.target_tokens:
+                if current:
+                    chunks.append(current.strip())
+                    current = ""
+                    current_tokens = 0
+
+                # Split by words for very long sentences/tables
+                words = sentence.split()
+                for word in words:
+                    word_tokens = self.count_tokens(word + " ")
+                    if current_tokens + word_tokens > self.target_tokens and current:
+                        chunks.append(current.strip())
+                        current = word + " "
+                        current_tokens = word_tokens
+                    else:
+                        current += word + " "
+                        current_tokens += word_tokens
+            else:
+                if current_tokens + sentence_tokens > self.target_tokens and current:
+                    chunks.append(current.strip())
+                    current = sentence + " "
+                    current_tokens = sentence_tokens
+                else:
+                    current += sentence + " "
+                    current_tokens += sentence_tokens
+
+        if current.strip():
+            chunks.append(current.strip())
+
+        return chunks if chunks else [para]  # Return original if splitting failed
+
     def _split_large_sections(self, sections: List[Dict]) -> List[Dict]:
         """Split sections larger than 1.5x target into multiple chunks."""
         result = []
@@ -213,7 +265,36 @@ class SemanticChunker:
                 for para in paragraphs:
                     para_tokens = self.count_tokens(para)
 
-                    if current_tokens + para_tokens > self.target_tokens and current_text:
+                    # Handle oversized paragraphs (e.g., large tables, dense text)
+                    if para_tokens > self.target_tokens:
+                        # Flush current chunk if exists
+                        if current_text:
+                            result.append({
+                                "title": f"{section['title']} (part {chunk_idx + 1})",
+                                "text": current_text.strip(),
+                                "page_range": section["page_range"]
+                            })
+                            chunk_idx += 1
+                            current_text = ""
+                            current_tokens = 0
+
+                        # Split the oversized paragraph
+                        sub_chunks = self._split_oversized_paragraph(para)
+                        for sub_chunk in sub_chunks:
+                            sub_tokens = self.count_tokens(sub_chunk)
+                            if current_tokens + sub_tokens > self.target_tokens and current_text:
+                                result.append({
+                                    "title": f"{section['title']} (part {chunk_idx + 1})",
+                                    "text": current_text.strip(),
+                                    "page_range": section["page_range"]
+                                })
+                                chunk_idx += 1
+                                current_text = sub_chunk + "\n\n"
+                                current_tokens = sub_tokens
+                            else:
+                                current_text += sub_chunk + "\n\n"
+                                current_tokens += sub_tokens
+                    elif current_tokens + para_tokens > self.target_tokens and current_text:
                         result.append({
                             "title": f"{section['title']} (part {chunk_idx + 1})",
                             "text": current_text.strip(),
