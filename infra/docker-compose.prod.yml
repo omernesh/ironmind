@@ -1,0 +1,136 @@
+version: '3.8'
+
+# Production deployment for Hetzner VPS
+# Usage: docker-compose -f infra/docker-compose.prod.yml up -d
+
+services:
+  # ==========================================================================
+  # Caddy - Reverse Proxy with Automatic HTTPS
+  # ==========================================================================
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # CRITICAL: Persists SSL certs
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # Frontend (Next.js with Better Auth)
+  # ==========================================================================
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - BETTER_AUTH_SECRET=${AUTH_SECRET}
+      - DATABASE_PATH=/app/data/auth.db
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - frontend-data:/app/data
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # Backend (FastAPI with Gunicorn)
+  # ==========================================================================
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - SERVICE_NAME=ironmind-backend
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - JWT_SECRET_KEY=${AUTH_SECRET}
+      - JWT_ALGORITHM=HS256
+      - FALKORDB_URL=redis://falkordb:6379
+      - FALKORDB_PASSWORD=${FALKORDB_PASSWORD:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - DOCLING_URL=http://docling:5001
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - backend-data:/app/data
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # FalkorDB (Graph Database)
+  # ==========================================================================
+  falkordb:
+    image: falkordb/falkordb:latest
+    restart: unless-stopped
+    command: --protected-mode no
+    volumes:
+      - falkordb-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ironmind-network
+
+  # ==========================================================================
+  # Docling Serve (Document Processing)
+  # ==========================================================================
+  docling:
+    image: quay.io/docling-project/docling-serve:v1.10.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - ironmind-network
+
+volumes:
+  caddy_data:      # Persists SSL certificates - DO NOT DELETE
+    driver: local
+  caddy_config:
+    driver: local
+  falkordb-data:
+    driver: local
+  backend-data:
+    driver: local
+  frontend-data:
+    driver: local
+
+networks:
+  ironmind-network:
+    driver: bridge
