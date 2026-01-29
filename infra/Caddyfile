@@ -1,0 +1,60 @@
+# IRONMIND Production Caddyfile
+# Replace {$DOMAIN} with your actual domain (e.g., ironmind.example.com)
+
+{$DOMAIN} {
+    # Frontend - all non-API routes
+    reverse_proxy frontend:3000
+
+    # Health check endpoint
+    handle /health {
+        reverse_proxy backend:8000
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}
+
+# API subdomain (optional - can also use path-based routing)
+api.{$DOMAIN} {
+    reverse_proxy backend:8000
+
+    # CORS headers (backup - also handled by FastAPI)
+    header Access-Control-Allow-Origin "{$DOMAIN}"
+    header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    header Access-Control-Allow-Headers "Authorization, Content-Type"
+
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+# Alternative: Path-based API routing (use this OR the subdomain above, not both)
+# Uncomment below and comment out the api.{$DOMAIN} block if using path-based routing
+#
+# {$DOMAIN} {
+#     handle /api/* {
+#         reverse_proxy backend:8000
+#     }
+#
+#     handle {
+#         reverse_proxy frontend:3000
+#     }
+# }
