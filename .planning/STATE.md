@@ -289,8 +289,9 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-1 todo captured:
+2 todos captured:
 - **Pre-ingest test documents for system verification** (testing) - Add sample aerospace/technical documents to docs/ and create seed script for immediate testing on deployment
+- **Create public GitHub monorepo for IRONMIND** (tooling) - Publish project as public GitHub repository with proper monorepo structure and sensitive files excluded
 
 ### Blockers/Concerns
 
