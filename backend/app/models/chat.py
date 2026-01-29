@@ -15,6 +15,16 @@ class Citation(BaseModel):
     score: Optional[float] = Field(None, description="Reranker score for diagnostics")
     source: str = Field(default="document", description="Source type: 'document' or 'graph'")
 
+    # Multi-source synthesis fields (Phase 5)
+    multi_source: bool = Field(
+        default=False,
+        description="True if part of multi-source claim with adjacent citations"
+    )
+    related_doc_ids: Optional[List[str]] = Field(
+        None,
+        description="Related document IDs if document relationships exist"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -25,6 +35,8 @@ class Citation(BaseModel):
                 "section_title": "3.2 Network Configuration",
                 "snippet": "The network architecture consists of three primary layers: edge, core, and management...",
                 "score": 0.87,
+                "multi_source": False,
+                "related_doc_ids": None,
             }
         }
 
@@ -84,6 +96,10 @@ class ChatResponse(BaseModel):
     request_id: str = Field(..., description="Unique request identifier for tracing")
     diagnostics: Optional[DiagnosticInfo] = Field(None, description="Performance metrics (debug mode only)")
 
+    # Multi-source synthesis metadata (Phase 5)
+    synthesis_mode: bool = Field(default=False, description="True if multi-document synthesis was used")
+    source_doc_count: int = Field(default=1, description="Number of distinct source documents")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -100,6 +116,8 @@ class ChatResponse(BaseModel):
                     }
                 ],
                 "request_id": "req-123e4567-e89b-12d3-a456-426614174000",
+                "synthesis_mode": False,
+                "source_doc_count": 1,
                 "diagnostics": {
                     "retrieval_count": 25,
                     "rerank_count": 12,

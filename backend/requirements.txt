@@ -40,3 +40,7 @@ redis>=5.0.0  # Optional, for caching
 
 # Knowledge Graph
 falkordb>=1.4.0  # Graph database Python client
+
+# Multi-source synthesis (Phase 5)
+python-Levenshtein>=0.25.0  # Fast fuzzy string matching for citation detection
+networkx>=3.0  # Graph algorithms for document relationship scoring
