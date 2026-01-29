@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Accurate, grounded answers from technical documentation with multi-source synthesis and transparent traceability
-**Current focus:** Phase 6 - Frontend Integration & Deployment (Plan 4 complete)
+**Current focus:** Phase 2.1 - Fix Document Ingestion Pipeline (URGENT)
 
 ## Current Position
 
-Phase: 6 of 6 (Frontend Integration & Deployment)
-Plan: 6 of 6 in current phase
-Status: PROJECT COMPLETE - DEPLOYED TO PRODUCTION
-Last activity: 2026-01-29 - Completed 06-06-PLAN.md (Hetzner VPS Deployment)
+Phase: 2.1 of 6 (Fix Document Ingestion Pipeline)
+Plan: 1 of 3 in current phase
+Status: EXECUTING URGENT FIX
+Last activity: 2026-01-29 - Completed 02.1-01-PLAN.md (Structured Docling Output Extraction)
 
-Progress: [██████████] 100% (30 of 30 plans complete)
+Progress: [██████████] 100% (30 of 30 original plans) + 1/3 hotfix plans
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30
+- Total plans completed: 31 (30 original + 1 hotfix)
 - Average duration: 9 min
-- Total execution time: 7.9 hours
+- Total execution time: 8.0 hours
 
 **By Phase:**
 
@@ -29,6 +29,7 @@ Progress: [██████████] 100% (30 of 30 plans complete)
 |-------|-------|-------|----------|
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
+| 02.1-fix-document-ingestion-pipeline | 1/3 | 4m | 4m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
 | 04-knowledge-graph-integration | 5/5 | 69m | 14m |
 | 05-multi-source-synthesis | 4/4 | 21m | 5m |
@@ -36,8 +37,8 @@ Progress: [██████████] 100% (30 of 30 plans complete)
 
 **Recent Trend:**
 
-- Last 6 plans: 06-01 (3m), 06-02 (5m), 06-03 (3m), 06-04 (6m), 06-05 (5m), 06-06 (30m)
-- Trend: PROJECT COMPLETE - all 30 plans executed successfully
+- Last 6 plans: 06-04 (6m), 06-05 (5m), 06-06 (30m), 02.1-01 (4m)
+- Trend: Executing Phase 2.1 hotfix for chunking issue
 
 *Updated after each plan completion*
 
@@ -61,7 +62,7 @@ Recent decisions affecting current work:
 - Implementation: Pydantic-settings for environment configuration
 - Implementation: Structlog with JSON output for production, console for development
 - Implementation: BaseHTTPMiddleware for request logging (avoids async context issues)
-- Implementation: Middleware order: CORS → CorrelationID → RequestLogging
+- Implementation: Middleware order: CORS -> CorrelationID -> RequestLogging
 - Implementation: Gunicorn with Uvicorn workers for production deployment
 - Implementation: Non-root user (appuser) in Docker for security
 
@@ -136,14 +137,23 @@ Recent decisions affecting current work:
 **From 02-05 execution:**
 - Implementation: Markdown heading pattern matching (#{1,6}) for section extraction from docling md_content
 - Implementation: Character position-based page estimation (~3000 chars/page heuristic)
-- Implementation: Multi-format extraction fallback chain (document.md_content → sections → pages → text)
+- Implementation: Multi-format extraction fallback chain (document.md_content -> sections -> pages -> text)
 - Implementation: Format adapter pattern for docling v1.10.0 output compatibility
+
+**From 02.1-01 execution:**
+- Implementation: DoclingElement base class with discriminated union (element_type field)
+- Implementation: DoclingTextElement, DoclingTableElement, DoclingHeadingElement, DoclingListItemElement
+- Implementation: DoclingTableElement.is_atomic=True (tables never split)
+- Implementation: DoclingParseResult with elements list, md_content fallback, page_count
+- Implementation: Body tree traversal with $ref pointer resolution for reading order
+- Implementation: Backward-compatible dict format for chunker input
+- Implementation: Request json,md formats from docling-serve for structured + markdown output
 
 **From 03-01 execution:**
 - Implementation: OpenAI text-embedding-3-small for embeddings ($0.02/1M tokens, 1536 dimensions)
 - Implementation: DeepInfra Qwen/Qwen3-Reranker-0.6B for reranking (30-50% precision boost)
 - Implementation: OpenAI GPT-5-mini for generation (latest model, 0.1 temperature for factual accuracy)
-- Implementation: Three-stage retrieval funnel (25 initial → 12 reranked → 10 to LLM)
+- Implementation: Three-stage retrieval funnel (25 initial -> 12 reranked -> 10 to LLM)
 - Implementation: Hybrid search 50/50 weight (HYBRID_WEIGHT=0.5 for BM25 + semantic)
 - Implementation: Citation model with doc_id, filename, page_range, snippet for traceability
 - Implementation: DiagnosticInfo model for latency tracking (retrieval, rerank, generation stages)
@@ -170,7 +180,7 @@ Recent decisions affecting current work:
 **From 03-03 execution:**
 - Implementation: Reranker service with DeepInfra Qwen3-Reranker-0.6B integration
 - Implementation: Cross-encoder reranking for 30-50% precision boost over semantic-only retrieval
-- Implementation: Graceful error handling (missing API key → skip, API error → fallback to input order)
+- Implementation: Graceful error handling (missing API key -> skip, API error -> fallback to input order)
 - Implementation: Rerank score and rank metadata attached to chunks for diagnostics
 - Implementation: Score distribution logging (min/max/avg) for performance monitoring
 - Implementation: Latency tracking for reranking stage observability
@@ -297,7 +307,7 @@ Recent decisions affecting current work:
 **From 06-02 execution:**
 - Implementation: react-dropzone for drag-drop file upload with file type validation
 - Implementation: axios for file upload with onUploadProgress support (fetch doesn't support progress events)
-- Implementation: Status mapping pattern (internal statuses → INGEST-10 display statuses)
+- Implementation: Status mapping pattern (internal statuses -> INGEST-10 display statuses)
 - Implementation: Auto-clear completed uploads after 3 seconds for clean UI
 - Implementation: 3-second polling interval while documents are processing
 - Implementation: Optimistic UI updates for delete operations
@@ -339,6 +349,15 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
+**Phase 2.1 In Progress (URGENT FIX):**
+
+- ✅ Plan 02.1-01 complete: DoclingClient extracts structured elements from json_content
+- Plan 02.1-02 next: Element-aware chunker with 10K token hard limit
+- Plan 02.1-03 pending: Re-enable entity extraction with smaller chunks
+- **Root cause:** Only extracting md_content from Docling produced 300K-6.7M token chunks
+- **Fix approach:** Use structured elements (TextItem, TableItem, SectionHeaderItem) for element-aware chunking
+- **Current state:** DoclingParseResult provides typed elements; chunker update needed
+
 **Phase 1 Risks:**
 
 - ~~Docling integration requires Day 1 validation on actual aerospace documents~~ **RESOLVED:** Complete ingestion pipeline verified end-to-end in 02-04
@@ -356,35 +375,35 @@ Recent decisions affecting current work:
 
 **Phase 3 Complete (7/9 success criteria verified):**
 
-- ✅ All 6 plans executed: Configuration, Hybrid Search, Retriever, Reranker, Generator, Chat API
-- ✅ Full RAG pipeline operational: retrieve → rerank → generate
-- ✅ Hybrid retrieval with OpenAI embeddings + BM25 keyword search
-- ✅ Cross-encoder reranking with DeepInfra Qwen3-Reranker-0.6B (30-50% precision boost)
-- ✅ Answer generation with GPT-5-mini and inline citations
-- ✅ POST /api/chat endpoint with authentication and comprehensive diagnostics
-- ✅ 22/26 tests passing (4 minor auth code mismatches: 403 vs 401)
-- ⚠️ Performance verification pending: <10s query time and 2-3 concurrent users (requires live testing)
+- All 6 plans executed: Configuration, Hybrid Search, Retriever, Reranker, Generator, Chat API
+- Full RAG pipeline operational: retrieve -> rerank -> generate
+- Hybrid retrieval with OpenAI embeddings + BM25 keyword search
+- Cross-encoder reranking with DeepInfra Qwen3-Reranker-0.6B (30-50% precision boost)
+- Answer generation with GPT-5-mini and inline citations
+- POST /api/chat endpoint with authentication and comprehensive diagnostics
+- 22/26 tests passing (4 minor auth code mismatches: 403 vs 401)
+- Performance verification pending: <10s query time and 2-3 concurrent users (requires live testing)
 
 **Phase 4 Complete:**
 
-- ✅ Plan 04-01 complete: FalkorDB client, Pydantic schemas, graph storage foundation
-- ✅ Plan 04-02 complete: EntityExtractor with OpenAI Structured Outputs and acronym expansion
-- ✅ Plan 04-03 complete: Pipeline integration with graph extraction stage
-- ✅ Plan 04-04 complete: Graph-aware retrieval with dual-channel merging
-- ✅ Plan 04-05 complete: Debug endpoints, statistics API, integration tests
+- Plan 04-01 complete: FalkorDB client, Pydantic schemas, graph storage foundation
+- Plan 04-02 complete: EntityExtractor with OpenAI Structured Outputs and acronym expansion
+- Plan 04-03 complete: Pipeline integration with graph extraction stage
+- Plan 04-04 complete: Graph-aware retrieval with dual-channel merging
+- Plan 04-05 complete: Debug endpoints, statistics API, integration tests
 - Knowledge graph populated automatically during document ingestion (verified: 69 entities, 45 relationships)
 - Graph-aware retrieval enhances RAG with relationship context
 - Citations transparently mark graph-derived vs document-stated information
-- End-to-end flow: upload → extract entities → answer relationship questions
+- End-to-end flow: upload -> extract entities -> answer relationship questions
 - Debug endpoints for graph inspection (/api/debug/graph/sample, /api/debug/graph/stats)
 - Comprehensive integration tests cover schemas, CRUD, extraction, retrieval, statistics
 
 **Phase 5 Complete:**
 
-- ✅ Plan 05-01 complete: Document relationship schemas and storage foundation
-- ✅ Plan 05-02 complete: Document cross-reference detection and pipeline integration
-- ✅ Plan 05-03 complete: Multi-source synthesis prompting with Chain-of-Thought reasoning
-- ✅ Plan 05-04 complete: Retrieval integration with document relationship expansion
+- Plan 05-01 complete: Document relationship schemas and storage foundation
+- Plan 05-02 complete: Document cross-reference detection and pipeline integration
+- Plan 05-03 complete: Multi-source synthesis prompting with Chain-of-Thought reasoning
+- Plan 05-04 complete: Retrieval integration with document relationship expansion
 - DocumentRelationship schema with explicit_citation and shared_entities types
 - DocumentRelationshipStore provides CRUD for document-level graph
 - CrossReferenceDetector with dual-signal detection (explicit citations + shared entities)
@@ -404,12 +423,12 @@ Recent decisions affecting current work:
 
 **Phase 6 Complete:**
 
-- ✅ Plan 06-01 complete: IAI-branded landing page with logo, usage explanation, and POC disclaimer
-- ✅ Plan 06-02 complete: Document upload UI with drag-drop, progress tracking, and status display
-- ✅ Plan 06-03 complete: Chat interface with inline citations and multi-source synthesis indicator
-- ✅ Plan 06-04 complete: Production Docker deployment with Caddy HTTPS and optimized images
-- ✅ Plan 06-05 complete: Complete project documentation suite (README, ARCHITECTURE, DEPLOYMENT, PIPELINE_DESIGN, EXAMPLE_QUERIES, CONTRIBUTING, LICENSE)
-- ✅ Plan 06-06 complete: Live production deployment on Hetzner VPS with CORS fix
+- Plan 06-01 complete: IAI-branded landing page with logo, usage explanation, and POC disclaimer
+- Plan 06-02 complete: Document upload UI with drag-drop, progress tracking, and status display
+- Plan 06-03 complete: Chat interface with inline citations and multi-source synthesis indicator
+- Plan 06-04 complete: Production Docker deployment with Caddy HTTPS and optimized images
+- Plan 06-05 complete: Complete project documentation suite (README, ARCHITECTURE, DEPLOYMENT, PIPELINE_DESIGN, EXAMPLE_QUERIES, CONTRIBUTING, LICENSE)
+- Plan 06-06 complete: Live production deployment on Hetzner VPS with CORS fix
 - Landing page displays IAI logo in fixed header
 - Usage explanation: "Upload up to 10 documents and chat with them"
 - POC disclaimer prominently displayed in yellow warning box
@@ -427,14 +446,25 @@ Recent decisions affecting current work:
 - Production Docker Compose with Caddy reverse proxy for automatic HTTPS
 - Optimized multi-stage Dockerfiles (frontend standalone, backend Gunicorn with 4 workers)
 - Production environment template with domain configuration
-- **Complete system: upload → process → chat → answer with citations**
+- **Complete system: upload -> process -> chat -> answer with citations**
 - **LIVE DEPLOYMENT:** <https://ironmind.chat> (frontend), <https://api.ironmind.chat> (API)
 - **Server:** Hetzner VPS at 65.108.249.67
 - **All services healthy:** frontend, backend, caddy, docling, falkordb
 
+### Roadmap Evolution
+
+**Phase 2.1 inserted after Phase 2 (2026-01-29):**
+
+- **Reason:** URGENT - Critical production issue with document chunking producing 300K-6.7M token chunks that exceed OpenAI API limits (300K max)
+- **Root cause identified:** Not using Docling's structured output properly - currently only extracting markdown instead of layout-aware elements (tables, sections, paragraphs) like Unstructured.io
+- **Current workaround:** Entity extraction disabled (SKIP_ENTITY_EXTRACTION = True) to allow basic document indexing without knowledge graph features
+- **Scope:** Fix chunking algorithm to use Docling's structured elements; evaluate Kotaemon (<https://github.com/Cinnamon/kotaemon>) as potential OOTB RAG alternative to custom txtai implementation
+- **Impact:** Most uploaded documents (especially large aerospace/defense technical docs) fail to process properly in current state
+- **Progress:** Plan 02.1-01 complete - DoclingClient now extracts structured elements
+
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 06-06-PLAN.md (Hetzner VPS Deployment)
+Stopped at: Completed 02.1-01-PLAN.md (Structured Docling Output Extraction)
 Resume file: None
-Next action: PROJECT COMPLETE - All 30 plans executed. Live at <https://ironmind.chat>
+Next action: Execute 02.1-02-PLAN.md (Element-Aware Chunker)
