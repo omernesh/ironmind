@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 Phase: 4 of 6 (Knowledge Graph Integration)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-01-29 - Completed 04-03-PLAN.md (Pipeline Integration)
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-01-29 - Completed 04-04-PLAN.md (Graph-Aware Retrieval)
 
-Progress: [████████░░] 76% (19 of 25 plans complete)
+Progress: [████████░░] 80% (20 of 25 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
-- Average duration: 16 min
-- Total execution time: 5.89 hours
+- Total plans completed: 20
+- Average duration: 15 min
+- Total execution time: 6.02 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [████████░░] 76% (19 of 25 plans complete)
 | 01-infrastructure-foundation | 5/5 | 4.3h | 52m |
 | 02-document-processing-pipeline | 5/5 | 62m | 12m |
 | 03-core-rag-with-hybrid-retrieval | 6/6 | 20m | 3m |
-| 04-knowledge-graph-integration | 3/4 | 14m | 4.7m |
+| 04-knowledge-graph-integration | 4/4 | 22m | 5.5m |
 
 **Recent Trend:**
-- Last 6 plans: 03-04 (5m), 03-05 (checkpoint), 04-01 (7m), 04-02 (4m), 04-03 (3m)
-- Trend: Phase 4 highly efficient - pipeline integration in 3min (well-designed APIs)
+- Last 6 plans: 03-05 (checkpoint), 04-01 (7m), 04-02 (4m), 04-03 (3m), 04-04 (8m)
+- Trend: Phase 4 complete - highly efficient with average 5.5min/plan (well-designed APIs + graph foundation)
 
 *Updated after each plan completion*
 
@@ -209,6 +209,19 @@ Recent decisions affecting current work:
 - Implementation: Graceful error handling: graph extraction failures log warning but don't crash pipeline
 - Implementation: Graph extraction as optional enhancement, not critical path for document ingestion
 
+**From 04-04 execution:**
+
+- Implementation: GraphRetriever extracts entities from queries using EntityExtractor
+- Implementation: Relationship queries trigger depth=2 traversal, simple queries use depth=1
+- Implementation: Relationship detection via keywords (connect, depend, interface) + multi-entity heuristic
+- Implementation: Graph chunks merged after semantic chunks with deduplication by entity name
+- Implementation: Citation model has source field ('document' or 'graph') for transparency
+- Implementation: Graph citations formatted as [N: Knowledge Graph - Entity] in prompts
+- Implementation: Lazy import pattern in GraphRetriever to avoid circular dependency with EntityExtractor
+- Implementation: HybridRetriever accepts graph_retriever dependency for testability
+- Implementation: Dual-channel retrieval pattern: Channel 1 (semantic+BM25) + Channel 2 (graph context)
+- Implementation: Merge limit: graph chunks capped at 2x semantic count to avoid explosion
+
 ### Pending Todos
 
 None yet.
@@ -241,15 +254,16 @@ None yet.
 - ✅ 22/26 tests passing (4 minor auth code mismatches: 403 vs 401)
 - ⚠️ Performance verification pending: <10s query time and 2-3 concurrent users (requires live testing)
 
-**Phase 4 In Progress:**
+**Phase 4 Complete:**
 
 - ✅ Plan 04-01 complete: FalkorDB client, Pydantic schemas, graph storage foundation
 - ✅ Plan 04-02 complete: EntityExtractor with OpenAI Structured Outputs and acronym expansion
 - ✅ Plan 04-03 complete: Pipeline integration with graph extraction stage
+- ✅ Plan 04-04 complete: Graph-aware retrieval with dual-channel merging
 - Knowledge graph populated automatically during document ingestion
-- Graph extraction integrated between chunking and indexing stages
-- Entity/relationship extraction with graceful failure handling
-- Remaining: Plan 04-04 (Graph-Aware Retrieval) - enhance RAG with graph context
+- Graph-aware retrieval enhances RAG with relationship context
+- Citations transparently mark graph-derived vs document-stated information
+- End-to-end flow: upload → extract entities → answer relationship questions
 
 **Phase 6 Risks (Research Flag):**
 
@@ -259,6 +273,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 04-03-PLAN.md (Pipeline Integration)
+Stopped at: Completed 04-04-PLAN.md (Graph-Aware Retrieval)
 Resume file: None
-Next action: Execute 04-04-PLAN.md (Graph-Aware Retrieval) - Enhance RAG with graph context
+Next action: Begin Phase 05 (Testing & Validation) - End-to-end verification
