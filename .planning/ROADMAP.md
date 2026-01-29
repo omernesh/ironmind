@@ -116,10 +116,14 @@ Plans:
   3. Answers to multi-document questions include citations from all relevant sources (3+ documents where applicable)
   4. System synthesizes information across documents with consistent entity resolution
   5. Response generation prioritizes graph-linked entities when building context for synthesis questions
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 05-01: [Brief description - to be created during plan-phase]
+
+- [ ] 05-01-PLAN.md - Schema extensions and document relationship storage (Wave 1)
+- [ ] 05-02-PLAN.md - Cross-reference detection and pipeline integration (Wave 2)
+- [ ] 05-03-PLAN.md - Multi-source synthesis prompting in generator (Wave 2)
+- [ ] 05-04-PLAN.md - Retrieval integration, debug endpoint, and verification (Wave 3)
 
 ### Phase 6: Frontend Integration & Deployment
 **Goal**: Production-deployed IRONMIND interface with IAI branding, document management, and chat UX on Hetzner VPS
@@ -149,5 +153,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Document Processing Pipeline | 5/5 | Complete | 2026-01-28 |
 | 3. Core RAG with Hybrid Retrieval | 6/6 | Complete | 2026-01-29 |
 | 4. Knowledge Graph Integration | 5/5 | Complete | 2026-01-29 |
-| 5. Multi-Source Synthesis | 0/TBD | Not started | - |
+| 5. Multi-Source Synthesis | 0/4 | Not started | - |
 | 6. Frontend Integration & Deployment | 0/TBD | Not started | - |
