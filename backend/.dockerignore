@@ -1,9 +1,12 @@
-node_modules
-.next
+__pycache__
+*.pyc
 .git
 .env*
 *.log
 .DS_Store
 .planning
+tests/
 *.md
 !README.md
+venv/
+.venv/
