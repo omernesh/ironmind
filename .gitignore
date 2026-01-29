@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Environment variables
+.env
+.env.*
+!.env.template
+!.env.production.template
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+.vercel
+.turbo
+
+# Logs
+*.log
+logs/
+uvicorn.log
+uvicorn_test.log
+combined.log
+error.log
+test_output.log
+test_results.txt
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+auth.db*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.py
+test_*.sh
+*.txt
+!requirements.txt
+
+# Temporary files
+nul
+cookies.txt
+=1.4.0
+
+# Documentation artifacts (not code)
+"Chatgpt feedback.md"
+"assignment description.txt"
+PRD.md
+
+# Assets (not needed in repo)
+*.jpg
+*.png
+!frontend/public/**/*.jpg
+!frontend/public/**/*.png
+
+# Test documents (sample files, not code)
+docs/*.pdf
+docs/*.docx
+docs/*.DOCX
+
+# Planning artifacts (local only)
+.claude/
+.planning/
