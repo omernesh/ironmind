@@ -85,13 +85,19 @@ class SemanticChunker:
         # Deduplicate
         unique_chunks = self._deduplicate(chunks_with_overlap)
 
+        # Enforce max token limit (emergency split for any oversized chunks)
+        safe_chunks = self._enforce_max_tokens(unique_chunks)
+
+        # Validate and log statistics
+        self._validate_and_log_statistics(safe_chunks, doc_id)
+
         logger.info("element_chunking_completed",
                    doc_id=doc_id,
                    elements=len(elements),
-                   chunks=len(unique_chunks),
-                   max_tokens=max(c.token_count for c in unique_chunks) if unique_chunks else 0)
+                   chunks=len(safe_chunks),
+                   max_tokens=max(c.token_count for c in safe_chunks) if safe_chunks else 0)
 
-        return unique_chunks
+        return safe_chunks
 
     def _get_elements(self, docling_output: Union[Dict, DoclingParseResult]) -> List[DoclingElement]:
         """Extract elements from various input formats."""
@@ -356,6 +362,63 @@ class SemanticChunker:
                        unique=len(unique))
 
         return unique
+
+    def _enforce_max_tokens(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
+        """Emergency split for any chunk exceeding max_tokens."""
+        result = []
+        for chunk in chunks:
+            if chunk.token_count <= self.max_tokens:
+                result.append(chunk)
+            else:
+                # This shouldn't happen often, but handle gracefully
+                logger.warning("emergency_chunk_split",
+                              chunk_id=chunk.chunk_id,
+                              original_tokens=chunk.token_count)
+                split_texts = self._split_large_text(chunk.text)
+                for i, text in enumerate(split_texts):
+                    new_chunk = ChunkMetadata(
+                        chunk_id=f"{chunk.chunk_id}-split-{i}",
+                        doc_id=chunk.doc_id,
+                        user_id=chunk.user_id,
+                        filename=chunk.filename,
+                        section_title=chunk.section_title,
+                        page_range=chunk.page_range,
+                        chunk_index=chunk.chunk_index * 100 + i,
+                        token_count=self.count_tokens(text),
+                        text=text,
+                        created_at=chunk.created_at
+                    )
+                    result.append(new_chunk)
+        return result
+
+    def _validate_and_log_statistics(self, chunks: List[ChunkMetadata], doc_id: str):
+        """Validate chunk sizes and log statistics for monitoring."""
+        if not chunks:
+            return
+
+        token_counts = [c.token_count for c in chunks]
+
+        # Validate chunk sizes
+        for chunk in chunks:
+            if chunk.token_count > self.max_tokens:
+                logger.error("chunk_exceeds_max_tokens",
+                            chunk_id=chunk.chunk_id,
+                            token_count=chunk.token_count,
+                            max_tokens=self.max_tokens)
+                # This should never happen with proper element-aware chunking
+                # but log it for debugging if it does
+
+        # Count table chunks (approximation: chunks significantly larger than target)
+        table_chunk_count = sum(1 for c in chunks if c.token_count > self.target_tokens * 2)
+
+        # Log chunk statistics
+        logger.info("chunk_statistics",
+                   doc_id=doc_id,
+                   total_chunks=len(chunks),
+                   min_tokens=min(token_counts),
+                   max_tokens=max(token_counts),
+                   avg_tokens=sum(token_counts) // len(token_counts),
+                   table_chunks=table_chunk_count)
 
     # ============ FALLBACK: Markdown-based chunking ============
     # Used when no structured elements available
