@@ -137,10 +137,15 @@ Plans:
   5. Error messages are user-friendly and actionable
   6. System deploys to Hetzner VPS with HTTPS termination
   7. Monorepo structure organized (/frontend, /backend, /infra, /docs) with complete documentation (README.md, ARCHITECTURE.md, DEPLOYMENT.md, PIPELINE_DESIGN.md, EXAMPLE_QUERIES.md, CONTRIBUTING.md, LICENSE)
-**Plans**: TBD
+**Plans**: 6 plans in 3 waves
 
 Plans:
-- [ ] 06-01: [Brief description - to be created during plan-phase]
+- [ ] 06-01-PLAN.md - Landing page with IAI branding and POC disclaimer (Wave 1)
+- [ ] 06-02-PLAN.md - Document upload UI with drag-drop and status tracking (Wave 1)
+- [ ] 06-03-PLAN.md - Chat interface with inline source citations (Wave 2)
+- [ ] 06-04-PLAN.md - Production Docker with Caddy HTTPS (Wave 2)
+- [ ] 06-05-PLAN.md - Project documentation suite (Wave 3)
+- [ ] 06-06-PLAN.md - Hetzner VPS deployment and verification (Wave 3)
 
 ## Progress
 
@@ -154,4 +159,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Core RAG with Hybrid Retrieval | 6/6 | Complete | 2026-01-29 |
 | 4. Knowledge Graph Integration | 5/5 | Complete | 2026-01-29 |
 | 5. Multi-Source Synthesis | 4/4 | Complete | 2026-01-29 |
-| 6. Frontend Integration & Deployment | 0/TBD | Not started | - |
+| 6. Frontend Integration & Deployment | 0/6 | Planned | - |
