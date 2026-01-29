@@ -9,7 +9,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from app.config import settings
 from app.core.logging import configure_logging, get_logger
 from app.core.database import DocumentDatabase
-from app.routers import health, protected, documents, chat
+from app.routers import health, protected, documents, chat, debug
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -73,6 +73,7 @@ app.include_router(health.router)
 app.include_router(protected.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
+app.include_router(debug.router)
 
 
 @app.on_event("startup")
