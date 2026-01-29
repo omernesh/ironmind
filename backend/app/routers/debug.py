@@ -7,7 +7,7 @@ from typing import Literal, Optional, Dict, List, Any
 from fastapi import APIRouter, Depends, Query
 import structlog
 
-from app.core.auth import get_current_user_id
+from app.middleware.auth import get_current_user_id
 from app.services.graph.graph_store import GraphStore
 
 logger = structlog.get_logger(__name__)
