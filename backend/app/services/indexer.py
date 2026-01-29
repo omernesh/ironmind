@@ -88,10 +88,27 @@ class TxtaiIndexer:
             }
             documents.append((chunk.chunk_id, doc, None))
 
-        # Index documents
-        self.embeddings.index(documents)
+        # Batch documents to respect OpenAI's 300K token-per-request limit
+        # Use conservative batch size of 200K tokens to account for overhead
+        MAX_BATCH_TOKENS = 200_000
+        batches = self._create_batches(documents, chunks, MAX_BATCH_TOKENS)
 
-        # Save index
+        logger.info("indexing_in_batches",
+                   doc_id=doc_id,
+                   total_chunks=len(chunks),
+                   num_batches=len(batches))
+
+        # Index each batch
+        for batch_idx, batch in enumerate(batches):
+            batch_tokens = sum(d[1].get("token_count", 0) for d in batch)
+            logger.debug("indexing_batch",
+                        doc_id=doc_id,
+                        batch=batch_idx + 1,
+                        batch_size=len(batch),
+                        batch_tokens=batch_tokens)
+            self.embeddings.index(batch)
+
+        # Save index after all batches
         self.embeddings.save(str(self.index_path))
 
         logger.info("chunks_indexed",
@@ -100,6 +117,57 @@ class TxtaiIndexer:
                    count=len(chunks))
 
         return len(chunks)
+
+    def _create_batches(
+        self,
+        documents: List[tuple],
+        chunks: List[ChunkMetadata],
+        max_batch_tokens: int
+    ) -> List[List[tuple]]:
+        """
+        Create batches of documents that respect token limits.
+
+        Args:
+            documents: List of (id, doc_dict, tags) tuples
+            chunks: Original chunks with token counts
+            max_batch_tokens: Maximum tokens per batch
+
+        Returns:
+            List of batches, each batch is a list of documents
+        """
+        batches = []
+        current_batch = []
+        current_batch_tokens = 0
+
+        for doc, chunk in zip(documents, chunks):
+            doc_tokens = chunk.token_count
+
+            # If single chunk exceeds limit, still index it (API will handle)
+            if doc_tokens > max_batch_tokens:
+                if current_batch:
+                    batches.append(current_batch)
+                    current_batch = []
+                    current_batch_tokens = 0
+                batches.append([doc])
+                logger.warning("chunk_exceeds_batch_limit",
+                             chunk_id=chunk.chunk_id,
+                             tokens=doc_tokens)
+                continue
+
+            # Start new batch if adding this chunk would exceed limit
+            if current_batch_tokens + doc_tokens > max_batch_tokens:
+                batches.append(current_batch)
+                current_batch = [doc]
+                current_batch_tokens = doc_tokens
+            else:
+                current_batch.append(doc)
+                current_batch_tokens += doc_tokens
+
+        # Add remaining batch
+        if current_batch:
+            batches.append(current_batch)
+
+        return batches
 
     def delete_document_chunks(self, doc_id: str) -> int:
         """
