@@ -11,7 +11,7 @@ from app.services.chunker import SemanticChunker
 from app.services.indexer import TxtaiIndexer
 from app.services.storage import StorageService
 from app.services.graph import EntityExtractor, GraphStore, DocumentRelationshipStore, CrossReferenceDetector
-from app.models.documents import ProcessingStatus, ProcessingLogEntry
+from app.models.documents import ProcessingStatus, ProcessingLogEntry, DoclingParseResult
 from app.config import settings
 
 logger = get_logger()
@@ -65,10 +65,17 @@ class DocumentPipeline:
             stage_start = time.time()
             await self._update_status(doc_id, user_id, ProcessingStatus.PARSING, "Parsing document with docling")
 
-            parse_result = await self.docling.parse_document(file_path)
+            parse_result: DoclingParseResult = await self.docling.parse_document(file_path)
 
-            # Save parsed output
-            await self.storage.save_processed_json(user_id, doc_id, parse_result)
+            # Save parsed output (serialize elements for storage)
+            storage_data = {
+                "document": {
+                    "md_content": parse_result.md_content,
+                    "elements": [e.model_dump() for e in parse_result.elements]
+                },
+                "page_count": parse_result.page_count
+            }
+            await self.storage.save_processed_json(user_id, doc_id, storage_data)
 
             processing_log.append(ProcessingLogEntry(
                 stage="Parsing",
@@ -77,16 +84,24 @@ class DocumentPipeline:
                 duration_ms=int((time.time() - stage_start) * 1000)
             ))
 
-            # Extract page count if available
-            page_count = parse_result.get("page_count", len(parse_result.get("pages", [])))
+            # Extract page count from structured result
+            page_count = parse_result.page_count or len(parse_result.elements) // 10  # estimate if not available
 
             # Stage 2: CHUNKING
             stage_start = time.time()
             await self._update_status(doc_id, user_id, ProcessingStatus.CHUNKING, "Creating semantic chunks")
 
             doc = await self.db.get_document(doc_id)
+
+            # Pass backward-compatible dict format to chunker
+            # Chunker's _get_elements() handles this dict -> DoclingElement conversion
+            chunker_input = {
+                "document": {"md_content": parse_result.md_content},
+                "elements": [e.model_dump() for e in parse_result.elements],
+                "page_count": parse_result.page_count
+            }
             chunks = self.chunker.chunk_document(
-                parse_result,
+                chunker_input,
                 doc_id,
                 user_id,
                 doc.filename
@@ -177,11 +192,10 @@ class DocumentPipeline:
 
                 if existing_doc_list:
                     # Get full text for cross-reference detection
-                    doc_text = parse_result.get("md_content", "")
+                    doc_text = parse_result.md_content
                     if not doc_text:
-                        # Fallback to concatenated sections
-                        sections = parse_result.get("sections", [])
-                        doc_text = "\n".join(s.get("content", "") for s in sections)
+                        # Fallback to concatenated element texts
+                        doc_text = "\n".join(e.text for e in parse_result.elements)
 
                     # Detect cross-references
                     relationships = await self.cross_ref_detector.detect_cross_references(
