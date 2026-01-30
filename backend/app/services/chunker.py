@@ -254,7 +254,7 @@ class SemanticChunker:
         chunk["page_end"] = page_number
 
     def _split_large_text(self, text: str) -> List[str]:
-        """Split large text at sentence boundaries."""
+        """Split large text at sentence boundaries, enforcing max_tokens hard limit."""
         import re
 
         # Split by sentences
@@ -277,7 +277,8 @@ class SemanticChunker:
                 words = sentence.split()
                 for word in words:
                     word_tokens = self.count_tokens(word + " ")
-                    if current_tokens + word_tokens > self.target_tokens and current:
+                    # CRITICAL FIX: Enforce max_tokens limit, not just target_tokens
+                    if current_tokens + word_tokens > self.max_tokens and current:
                         chunks.append(current.strip())
                         current = word + " "
                         current_tokens = word_tokens
@@ -285,11 +286,21 @@ class SemanticChunker:
                         current += word + " "
                         current_tokens += word_tokens
             else:
-                if current_tokens + sentence_tokens > self.target_tokens and current:
+                # CRITICAL FIX: Check max_tokens BEFORE target_tokens
+                # This prevents accumulating multiple large sentences that exceed max_tokens
+                if current_tokens + sentence_tokens > self.max_tokens:
+                    # Would exceed hard limit - flush current and start new
+                    if current:
+                        chunks.append(current.strip())
+                    current = sentence + " "
+                    current_tokens = sentence_tokens
+                elif current_tokens + sentence_tokens > self.target_tokens and current:
+                    # Reached target - flush and start new
                     chunks.append(current.strip())
                     current = sentence + " "
                     current_tokens = sentence_tokens
                 else:
+                    # Add to current chunk
                     current += sentence + " "
                     current_tokens += sentence_tokens
 
