@@ -22,12 +22,8 @@ RUN pip install --no-cache-dir gunicorn
 # Copy application code
 COPY ./app /app/app
 
-# Create non-root user for security
-RUN useradd -m -u 1001 appuser && \
-    mkdir -p /app/data && \
-    chown -R appuser:appuser /app
-
-USER appuser
+# Create data directory
+RUN mkdir -p /app/data
 
 # Expose port
 EXPOSE 8000
