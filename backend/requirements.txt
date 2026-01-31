@@ -20,8 +20,9 @@ aiosqlite>=0.19.0
 # File operations
 aiofiles>=23.2.0
 
-# Text processing
+# Text processing and chunking
 tiktoken>=0.5.0
+chonkie[semantic]>=1.5.4  # Production-grade hybrid chunking with semantic support
 
 # RAG and embeddings (CPU-only, no CUDA dependencies)
 # Install CPU-only torch first to avoid CUDA downloads

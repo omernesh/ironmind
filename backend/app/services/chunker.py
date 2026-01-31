@@ -1,49 +1,123 @@
-"""Element-aware semantic chunking for Docling documents."""
-import hashlib
+"""Hybrid chunking service using chonkie library for semantic and token-based chunking."""
 import tiktoken
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, Literal
 from datetime import datetime, timezone
+from chonkie import TokenChunker as ChonkieTokenChunker
+from chonkie import SemanticChunker as ChonkieSemanticChunker
+from chonkie.types import Chunk as ChonkieChunk
+
 from app.core.logging import get_logger
-from app.models.documents import (
-    ChunkMetadata,
-    DoclingElement,
-    DoclingTextElement,
-    DoclingTableElement,
-    DoclingHeadingElement,
-    DoclingListItemElement,
-    DoclingParseResult
-)
+from app.models.documents import ChunkMetadata, DoclingParseResult
 
 logger = get_logger()
 
 
 class SemanticChunker:
     """
-    Chunk documents by element boundaries with overlap.
+    Hybrid chunker using chonkie library for production-grade chunking.
+    Supports both token-based and semantic chunking strategies.
 
-    Strategy (element-aware):
-    1. Tables are ATOMIC - never split, even if large
-    2. Section headers start new chunks
-    3. Text paragraphs are grouped until target_tokens
-    4. Large paragraphs split at sentence boundaries
-    5. 15% overlap between consecutive text chunks
+    Key features:
+    - Semantic chunking for coherent, meaningful chunk boundaries
+    - Token-based chunking for speed and simplicity
+    - Configurable chunking mode (semantic/token/auto)
+    - Hard max_tokens enforcement for safety
+    - Backward-compatible interface with original implementation
     """
 
     def __init__(
         self,
         target_tokens: int = 1000,
-        max_tokens: int = 10000,  # Hard limit - well under OpenAI's 300K
+        max_tokens: int = 10000,
         overlap_pct: float = 0.15,
-        min_chunk_tokens: int = 50
+        min_chunk_tokens: int = 50,
+        mode: Literal["semantic", "token", "auto"] = "semantic",
+        embedding_model: str = "minishlab/potion-base-32M",
+        similarity_threshold: float = 0.5
     ):
+        """
+        Initialize the hybrid chunker with configurable strategy.
+
+        Args:
+            target_tokens: Target chunk size in tokens (default: 1000)
+            max_tokens: Hard maximum tokens per chunk (default: 10000)
+            overlap_pct: Percentage of overlap between chunks for token mode (default: 0.15 = 15%)
+            min_chunk_tokens: Minimum chunk size (default: 50)
+            mode: Chunking strategy - "semantic", "token", or "auto" (default: "semantic")
+                  - "semantic": Use semantic boundaries for coherent chunks
+                  - "token": Use fixed token boundaries (faster, simpler)
+                  - "auto": Use semantic for large docs, token for small docs
+            embedding_model: Embedding model for semantic chunking (default: minishlab/potion-base-32M)
+            similarity_threshold: Similarity threshold for semantic splitting (default: 0.5)
+        """
         self.target_tokens = target_tokens
         self.max_tokens = max_tokens
         self.overlap_pct = overlap_pct
         self.min_chunk_tokens = min_chunk_tokens
+        self.mode = mode
+        self.embedding_model = embedding_model
+        self.similarity_threshold = similarity_threshold
+
+        # Initialize tiktoken encoder for token counting
         self.encoder = tiktoken.get_encoding("cl100k_base")
 
+        # Initialize chunkers based on mode
+        overlap_tokens = int(target_tokens * overlap_pct)
+
+        if mode in ["semantic", "auto"]:
+            # Initialize semantic chunker with embedding model
+            try:
+                logger.info("initializing_semantic_chunker",
+                           embedding_model=embedding_model,
+                           target_tokens=target_tokens,
+                           threshold=similarity_threshold)
+
+                self.semantic_chunker = ChonkieSemanticChunker(
+                    embedding_model=embedding_model,
+                    chunk_size=target_tokens,
+                    threshold=similarity_threshold,
+                    similarity_window=3,  # Look at 3 sentences for similarity
+                    min_sentences_per_chunk=1,
+                    min_characters_per_sentence=24
+                )
+                logger.info("semantic_chunker_initialized_successfully")
+            except Exception as e:
+                logger.error("semantic_chunker_initialization_failed",
+                            error=str(e),
+                            error_type=type(e).__name__)
+                if mode == "semantic":
+                    raise
+                else:
+                    logger.warning("falling_back_to_token_chunker")
+                    self.mode = "token"
+
+        if mode in ["token", "auto"] or not hasattr(self, 'semantic_chunker'):
+            # Initialize token chunker as fallback or primary
+            self.token_chunker = ChonkieTokenChunker(
+                tokenizer="cl100k_base",
+                chunk_size=target_tokens,
+                chunk_overlap=overlap_tokens
+            )
+            logger.info("token_chunker_initialized",
+                       target_tokens=target_tokens,
+                       overlap_tokens=overlap_tokens)
+
+        logger.info("chunker_initialized",
+                   mode=self.mode,
+                   target_tokens=target_tokens,
+                   max_tokens=max_tokens,
+                   library="chonkie")
+
     def count_tokens(self, text: str) -> int:
-        """Count tokens in text."""
+        """
+        Count tokens using tiktoken (compatibility method).
+
+        Args:
+            text: Text to count tokens for
+
+        Returns:
+            Number of tokens
+        """
         return len(self.encoder.encode(text))
 
     def chunk_document(
@@ -54,544 +128,303 @@ class SemanticChunker:
         filename: str
     ) -> List[ChunkMetadata]:
         """
-        Chunk document using element-aware strategy.
+        Main chunking method - maintains existing interface for pipeline compatibility.
+
+        Strategy (Hybrid Approach):
+        1. Extract text from docling_output (markdown or json_content)
+        2. Choose chunking strategy based on mode and document size
+        3. Use semantic chunking for coherent boundaries OR token chunking for speed
+        4. Enforce max_tokens hard limit (safety fallback)
+        5. Log statistics
 
         Args:
-            docling_output: Either DoclingParseResult or dict with elements/md_content
+            docling_output: Either DoclingParseResult or dict with md_content/json_content
             doc_id: Document ID
             user_id: User ID
             filename: Original filename
 
         Returns:
-            List of ChunkMetadata with text and metadata
+            List of ChunkMetadata objects
         """
-        # Extract elements from input
-        elements = self._get_elements(docling_output)
+        # Extract text content
+        text = self._extract_text(docling_output)
 
-        if not elements:
-            # Fallback to markdown-based chunking if no elements
-            logger.warning("no_elements_found_using_markdown_fallback", doc_id=doc_id)
-            return self._chunk_from_markdown(docling_output, doc_id, user_id, filename)
+        if not text or not text.strip():
+            logger.warning("empty_document_skipping_chunking", doc_id=doc_id)
+            return []
 
-        # Group elements into chunks
-        raw_chunks = self._group_elements_into_chunks(elements)
-
-        # Create ChunkMetadata objects
-        chunks = self._create_chunks(raw_chunks, doc_id, user_id, filename)
-
-        # Add overlap between text chunks
-        chunks_with_overlap = self._add_overlap(chunks)
-
-        # Deduplicate
-        unique_chunks = self._deduplicate(chunks_with_overlap)
-
-        # Enforce max token limit (emergency split for any oversized chunks)
-        safe_chunks = self._enforce_max_tokens(unique_chunks)
-
-        # Validate and log statistics
-        self._validate_and_log_statistics(safe_chunks, doc_id)
-
-        logger.info("element_chunking_completed",
+        text_tokens = self.count_tokens(text)
+        logger.info("chunking_document",
                    doc_id=doc_id,
-                   elements=len(elements),
-                   chunks=len(safe_chunks),
-                   max_tokens=max(c.token_count for c in safe_chunks) if safe_chunks else 0)
+                   text_length=len(text),
+                   text_tokens=text_tokens)
 
-        return safe_chunks
+        # Determine which chunker to use
+        use_semantic = self._should_use_semantic(text_tokens)
 
-    def _get_elements(self, docling_output: Union[Dict, DoclingParseResult]) -> List[DoclingElement]:
-        """Extract elements from various input formats."""
-        if isinstance(docling_output, DoclingParseResult):
-            return docling_output.elements
+        # Chunk using selected strategy
+        try:
+            if use_semantic and hasattr(self, 'semantic_chunker'):
+                logger.info("using_semantic_chunking", doc_id=doc_id, text_tokens=text_tokens)
+                chonkie_chunks = self.semantic_chunker(text)
+                chunking_mode = "semantic"
+            else:
+                logger.info("using_token_chunking", doc_id=doc_id, text_tokens=text_tokens)
+                chonkie_chunks = self.token_chunker(text)
+                chunking_mode = "token"
 
-        # Dict format - check for elements list
-        if "elements" in docling_output:
-            return [self._dict_to_element(e) for e in docling_output["elements"]]
+            logger.info("chonkie_chunking_completed",
+                       doc_id=doc_id,
+                       mode=chunking_mode,
+                       num_chunks=len(chonkie_chunks))
+        except Exception as e:
+            logger.error("chonkie_chunking_failed",
+                        doc_id=doc_id,
+                        error=str(e),
+                        error_type=type(e).__name__)
+            # Fallback to token chunker if semantic fails
+            if use_semantic and hasattr(self, 'token_chunker'):
+                logger.warning("falling_back_to_token_chunker_after_error", doc_id=doc_id)
+                chonkie_chunks = self.token_chunker(text)
+                chunking_mode = "token_fallback"
+            else:
+                raise
 
-        return []
+        # Convert to ChunkMetadata and enforce limits
+        chunk_metadatas = []
+        oversized_count = 0
 
-    def _dict_to_element(self, d: dict) -> DoclingElement:
-        """Convert dict to typed DoclingElement."""
-        element_type = d.get("element_type", "text")
-        if element_type == "table":
-            return DoclingTableElement(**d)
-        elif element_type == "section_header":
-            return DoclingHeadingElement(**d)
-        elif element_type == "list_item":
-            return DoclingListItemElement(**d)
+        for idx, chunk in enumerate(chonkie_chunks):
+            # Enforce hard max_tokens limit
+            if chunk.token_count > self.max_tokens:
+                logger.warning("oversized_chunk_detected",
+                              doc_id=doc_id,
+                              chunk_index=idx,
+                              token_count=chunk.token_count,
+                              max_tokens=self.max_tokens)
+                oversized_count += 1
+
+                # Split oversized chunks using emergency fallback
+                split_chunks = self._emergency_split(chunk, doc_id, user_id, filename, idx)
+                chunk_metadatas.extend(split_chunks)
+            else:
+                chunk_metadata = self._create_chunk_metadata(
+                    chunk, doc_id, user_id, filename, idx
+                )
+                chunk_metadatas.append(chunk_metadata)
+
+        # Log statistics
+        self._log_statistics(chunk_metadatas, doc_id, oversized_count, chunking_mode)
+
+        return chunk_metadatas
+
+    def _should_use_semantic(self, text_tokens: int) -> bool:
+        """
+        Determine whether to use semantic or token chunking.
+
+        Args:
+            text_tokens: Number of tokens in the document
+
+        Returns:
+            True if semantic chunking should be used, False for token chunking
+        """
+        if self.mode == "semantic":
+            return True
+        elif self.mode == "token":
+            return False
+        elif self.mode == "auto":
+            # Use semantic for larger documents (better coherence)
+            # Use token for small documents (faster, simpler)
+            # Threshold: 5000 tokens (~5 pages of text)
+            threshold = 5000
+            use_semantic = text_tokens >= threshold
+            logger.debug("auto_mode_decision",
+                        text_tokens=text_tokens,
+                        threshold=threshold,
+                        use_semantic=use_semantic)
+            return use_semantic
         else:
-            return DoclingTextElement(**d)
+            return True  # Default to semantic
 
-    def _group_elements_into_chunks(self, elements: List[DoclingElement]) -> List[Dict]:
-        """Group elements into chunks respecting element boundaries."""
-        chunks = []
-        current_chunk = {
-            "texts": [],
-            "page_start": None,
-            "page_end": None,
-            "section_title": None,
-            "is_table": False
-        }
-        current_tokens = 0
-        current_section = "Document"
+    def _extract_text(self, docling_output: Union[Dict[str, Any], DoclingParseResult]) -> str:
+        """
+        Extract text content from docling output.
 
-        for element in elements:
-            element_tokens = self.count_tokens(element.text)
+        Tries md_content first (markdown), falls back to json_content if it's a dict.
 
-            # Update section title from headings
-            if isinstance(element, DoclingHeadingElement):
-                current_section = element.text
+        Args:
+            docling_output: Docling parser output
 
-                # Start new chunk on section header (if current has content)
-                if current_chunk["texts"] and current_tokens >= self.min_chunk_tokens:
-                    chunks.append(self._finalize_chunk(current_chunk, current_tokens))
-                    current_chunk = self._new_chunk()
-                    current_tokens = 0
+        Returns:
+            Extracted text content
+        """
+        if isinstance(docling_output, dict):
+            text = docling_output.get("md_content") or docling_output.get("json_content", "")
+        else:
+            # DoclingParseResult object
+            text = docling_output.md_content or ""
 
-                current_chunk["section_title"] = element.text
+        return text
 
-            # Tables - keep atomic if small, split if too large
-            if isinstance(element, DoclingTableElement):
-                # Flush current text chunk first
-                if current_chunk["texts"]:
-                    chunks.append(self._finalize_chunk(current_chunk, current_tokens))
-                    current_chunk = self._new_chunk()
-                    current_tokens = 0
-
-                # If table is small enough, keep it atomic
-                if element_tokens <= self.max_tokens:
-                    table_chunk = {
-                        "texts": [element.text],
-                        "page_start": element.page_number,
-                        "page_end": element.page_number,
-                        "section_title": current_section,
-                        "is_table": True,
-                        "token_count": element_tokens
-                    }
-                    chunks.append(table_chunk)
-                    logger.debug("table_chunk_created",
-                                tokens=element_tokens,
-                                rows=element.num_rows,
-                                cols=element.num_cols)
-                else:
-                    # Table is too large - split it
-                    logger.warning("splitting_large_table",
-                                  tokens=element_tokens,
-                                  rows=element.num_rows,
-                                  cols=element.num_cols)
-                    split_texts = self._split_large_text(element.text)
-                    for i, split_text in enumerate(split_texts):
-                        split_tokens = self.count_tokens(split_text)
-                        table_chunk = {
-                            "texts": [split_text],
-                            "page_start": element.page_number,
-                            "page_end": element.page_number,
-                            "section_title": current_section,
-                            "is_table": True,
-                            "token_count": split_tokens
-                        }
-                        chunks.append(table_chunk)
-                        logger.debug("table_chunk_split_created",
-                                    part=i+1,
-                                    tokens=split_tokens)
-                continue
-
-            # Text elements - group until target reached
-            if current_tokens + element_tokens > self.target_tokens and current_chunk["texts"]:
-                # Current chunk is full
-                chunks.append(self._finalize_chunk(current_chunk, current_tokens))
-                current_chunk = self._new_chunk()
-                current_chunk["section_title"] = current_section
-                current_tokens = 0
-
-            # Handle oversized single elements
-            if element_tokens > self.max_tokens:
-                # Split the element into smaller pieces
-                split_texts = self._split_large_text(element.text)
-                for split_text in split_texts:
-                    split_tokens = self.count_tokens(split_text)
-                    if current_tokens + split_tokens > self.target_tokens and current_chunk["texts"]:
-                        chunks.append(self._finalize_chunk(current_chunk, current_tokens))
-                        current_chunk = self._new_chunk()
-                        current_chunk["section_title"] = current_section
-                        current_tokens = 0
-
-                    current_chunk["texts"].append(split_text)
-                    current_tokens += split_tokens
-                    self._update_page_range(current_chunk, element.page_number)
-            else:
-                current_chunk["texts"].append(element.text)
-                current_tokens += element_tokens
-                self._update_page_range(current_chunk, element.page_number)
-
-        # Don't forget the last chunk
-        if current_chunk["texts"]:
-            chunks.append(self._finalize_chunk(current_chunk, current_tokens))
-
-        return chunks
-
-    def _new_chunk(self) -> Dict:
-        """Create new empty chunk dict."""
-        return {
-            "texts": [],
-            "page_start": None,
-            "page_end": None,
-            "section_title": None,
-            "is_table": False
-        }
-
-    def _finalize_chunk(self, chunk: Dict, token_count: int) -> Dict:
-        """Finalize chunk with token count."""
-        chunk["token_count"] = token_count
-        return chunk
-
-    def _update_page_range(self, chunk: Dict, page_number: Optional[int]):
-        """Update chunk's page range."""
-        if page_number is None:
-            return
-        if chunk["page_start"] is None:
-            chunk["page_start"] = page_number
-        chunk["page_end"] = page_number
-
-    def _split_large_text(self, text: str) -> List[str]:
-        """Split large text at sentence boundaries, enforcing max_tokens hard limit."""
-        import re
-
-        # Split by sentences
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-        chunks = []
-        current = ""
-        current_tokens = 0
-
-        for sentence in sentences:
-            sentence_tokens = self.count_tokens(sentence)
-
-            # If single sentence exceeds max, split by words
-            if sentence_tokens > self.max_tokens:
-                if current:
-                    chunks.append(current.strip())
-                    current = ""
-                    current_tokens = 0
-
-                # Word-level splitting for very long sentences
-                words = sentence.split()
-                for word in words:
-                    word_tokens = self.count_tokens(word + " ")
-                    # CRITICAL FIX: Enforce max_tokens limit, not just target_tokens
-                    if current_tokens + word_tokens > self.max_tokens and current:
-                        chunks.append(current.strip())
-                        current = word + " "
-                        current_tokens = word_tokens
-                    else:
-                        current += word + " "
-                        current_tokens += word_tokens
-            else:
-                # CRITICAL FIX: Check max_tokens BEFORE target_tokens
-                # This prevents accumulating multiple large sentences that exceed max_tokens
-                if current_tokens + sentence_tokens > self.max_tokens:
-                    # Would exceed hard limit - flush current and start new
-                    if current:
-                        chunks.append(current.strip())
-                    current = sentence + " "
-                    current_tokens = sentence_tokens
-                elif current_tokens + sentence_tokens > self.target_tokens and current:
-                    # Reached target - flush and start new
-                    chunks.append(current.strip())
-                    current = sentence + " "
-                    current_tokens = sentence_tokens
-                else:
-                    # Add to current chunk
-                    current += sentence + " "
-                    current_tokens += sentence_tokens
-
-        if current.strip():
-            chunks.append(current.strip())
-
-        return chunks if chunks else [text]
-
-    def _create_chunks(
+    def _create_chunk_metadata(
         self,
-        raw_chunks: List[Dict],
+        chunk: ChonkieChunk,
         doc_id: str,
         user_id: str,
-        filename: str
+        filename: str,
+        chunk_index: int
+    ) -> ChunkMetadata:
+        """
+        Convert chonkie Chunk to ChunkMetadata.
+
+        Args:
+            chunk: Chonkie chunk object
+            doc_id: Document ID
+            user_id: User ID
+            filename: Original filename
+            chunk_index: Sequential chunk index
+
+        Returns:
+            ChunkMetadata object
+        """
+        return ChunkMetadata(
+            chunk_id=f"{doc_id}-chunk-{chunk_index:03d}",
+            doc_id=doc_id,
+            user_id=user_id,
+            filename=filename,
+            section_title=None,  # Could extract from text in future enhancement
+            page_range=None,     # Could extract from docling metadata in future
+            chunk_index=chunk_index,
+            token_count=chunk.token_count,
+            text=chunk.text,
+            created_at=datetime.now(timezone.utc)
+        )
+
+    def _emergency_split(
+        self,
+        chunk: ChonkieChunk,
+        doc_id: str,
+        user_id: str,
+        filename: str,
+        base_index: int
     ) -> List[ChunkMetadata]:
-        """Create ChunkMetadata objects from grouped chunks."""
+        """
+        Emergency split for chunks exceeding max_tokens.
+
+        This is a safety fallback that should rarely trigger - chonkie should
+        respect chunk_size. If a chunk exceeds max_tokens, split at word boundaries.
+
+        Args:
+            chunk: Oversized chonkie chunk
+            doc_id: Document ID
+            user_id: User ID
+            filename: Original filename
+            base_index: Base chunk index for numbering
+
+        Returns:
+            List of split ChunkMetadata objects
+        """
         chunks = []
+        words = chunk.text.split()
+        current_words = []
+        current_tokens = 0
+        sub_index = 0
 
-        for idx, raw in enumerate(raw_chunks):
-            chunk_id = f"{doc_id}-chunk-{idx:03d}"
-            text = "\n\n".join(raw["texts"])
-            token_count = raw.get("token_count", self.count_tokens(text))
+        for word in words:
+            word_with_space = word + " "
+            word_tokens = self.count_tokens(word_with_space)
 
-            # Format page range
-            page_range = None
-            if raw["page_start"]:
-                if raw["page_end"] and raw["page_end"] != raw["page_start"]:
-                    page_range = f"{raw['page_start']}-{raw['page_end']}"
-                else:
-                    page_range = str(raw["page_start"])
+            if current_tokens + word_tokens <= self.max_tokens:
+                current_words.append(word)
+                current_tokens += word_tokens
+            else:
+                # Flush current chunk
+                if current_words:
+                    text = " ".join(current_words)
+                    chunks.append(ChunkMetadata(
+                        chunk_id=f"{doc_id}-chunk-{base_index:03d}-{sub_index}",
+                        doc_id=doc_id,
+                        user_id=user_id,
+                        filename=filename,
+                        section_title=None,
+                        page_range=None,
+                        chunk_index=base_index * 1000 + sub_index,
+                        token_count=self.count_tokens(text),
+                        text=text,
+                        created_at=datetime.now(timezone.utc)
+                    ))
+                    sub_index += 1
 
+                # Start new chunk with current word
+                current_words = [word]
+                current_tokens = word_tokens
+
+        # Flush final chunk
+        if current_words:
+            text = " ".join(current_words)
             chunks.append(ChunkMetadata(
-                chunk_id=chunk_id,
+                chunk_id=f"{doc_id}-chunk-{base_index:03d}-{sub_index}",
                 doc_id=doc_id,
                 user_id=user_id,
                 filename=filename,
-                section_title=raw.get("section_title"),
-                page_range=page_range,
-                chunk_index=idx,
-                token_count=token_count,
+                section_title=None,
+                page_range=None,
+                chunk_index=base_index * 1000 + sub_index,
+                token_count=self.count_tokens(text),
                 text=text,
                 created_at=datetime.now(timezone.utc)
             ))
 
+        logger.info("emergency_split_completed",
+                   doc_id=doc_id,
+                   base_index=base_index,
+                   original_tokens=chunk.token_count,
+                   split_chunks=len(chunks))
+
         return chunks
 
-    def _add_overlap(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
-        """Add overlap from previous chunk (skip table chunks)."""
-        if len(chunks) <= 1:
-            return chunks
+    def _log_statistics(
+        self,
+        chunks: List[ChunkMetadata],
+        doc_id: str,
+        oversized_count: int,
+        chunking_mode: str = "unknown"
+    ):
+        """
+        Log chunking statistics for monitoring.
 
-        overlap_tokens = int(self.target_tokens * self.overlap_pct)
-        result = [chunks[0]]
-
-        for i in range(1, len(chunks)):
-            chunk = chunks[i]
-            prev_chunk = chunks[i-1]
-
-            # Don't add overlap to/from table chunks
-            # Check by token count heuristic (tables tend to be larger)
-            if prev_chunk.token_count > self.max_tokens * 0.8:
-                result.append(chunk)
-                continue
-
-            prev_tokens = self.encoder.encode(prev_chunk.text)
-            if len(prev_tokens) > overlap_tokens:
-                overlap_text = self.encoder.decode(prev_tokens[-overlap_tokens:])
-                chunk.text = overlap_text + " " + chunk.text
-                chunk.token_count = self.count_tokens(chunk.text)
-
-            result.append(chunk)
-
-        return result
-
-    def _deduplicate(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
-        """Remove duplicate chunks by content hash."""
-        seen_hashes = set()
-        unique = []
-
-        for chunk in chunks:
-            normalized = chunk.text.lower().strip()
-            content_hash = hashlib.sha256(normalized.encode()).hexdigest()
-
-            if content_hash not in seen_hashes:
-                seen_hashes.add(content_hash)
-                unique.append(chunk)
-
-        if len(chunks) != len(unique):
-            logger.info("chunks_deduplicated",
-                       original=len(chunks),
-                       unique=len(unique))
-
-        return unique
-
-    def _enforce_max_tokens(self, chunks: List[ChunkMetadata]) -> List[ChunkMetadata]:
-        """Emergency split for any chunk exceeding max_tokens."""
-        result = []
-        for chunk in chunks:
-            if chunk.token_count <= self.max_tokens:
-                result.append(chunk)
-            else:
-                # This shouldn't happen often, but handle gracefully
-                logger.warning("emergency_chunk_split",
-                              chunk_id=chunk.chunk_id,
-                              original_tokens=chunk.token_count)
-                split_texts = self._split_large_text(chunk.text)
-                for i, text in enumerate(split_texts):
-                    new_chunk = ChunkMetadata(
-                        chunk_id=f"{chunk.chunk_id}-split-{i}",
-                        doc_id=chunk.doc_id,
-                        user_id=chunk.user_id,
-                        filename=chunk.filename,
-                        section_title=chunk.section_title,
-                        page_range=chunk.page_range,
-                        chunk_index=chunk.chunk_index * 100 + i,
-                        token_count=self.count_tokens(text),
-                        text=text,
-                        created_at=chunk.created_at
-                    )
-                    result.append(new_chunk)
-        return result
-
-    def _validate_and_log_statistics(self, chunks: List[ChunkMetadata], doc_id: str):
-        """Validate chunk sizes and log statistics for monitoring."""
+        Args:
+            chunks: List of chunk metadata objects
+            doc_id: Document ID
+            oversized_count: Number of chunks that exceeded max_tokens
+            chunking_mode: Which chunking mode was used (semantic/token/token_fallback)
+        """
         if not chunks:
+            logger.warning("no_chunks_produced", doc_id=doc_id)
             return
 
         token_counts = [c.token_count for c in chunks]
 
-        # Validate chunk sizes
-        for chunk in chunks:
-            if chunk.token_count > self.max_tokens:
-                logger.error("chunk_exceeds_max_tokens",
-                            chunk_id=chunk.chunk_id,
-                            token_count=chunk.token_count,
-                            max_tokens=self.max_tokens)
-                # This should never happen with proper element-aware chunking
-                # but log it for debugging if it does
+        stats = {
+            "doc_id": doc_id,
+            "chunking_mode": chunking_mode,
+            "total_chunks": len(chunks),
+            "oversized_chunks": oversized_count,
+            "min_tokens": min(token_counts),
+            "max_tokens": max(token_counts),
+            "avg_tokens": sum(token_counts) / len(token_counts),
+            "total_tokens": sum(token_counts)
+        }
 
-        # Count table chunks (approximation: chunks significantly larger than target)
-        table_chunk_count = sum(1 for c in chunks if c.token_count > self.target_tokens * 2)
+        logger.info("chunking_statistics", **stats)
 
-        # Log chunk statistics
-        logger.info("chunk_statistics",
-                   doc_id=doc_id,
-                   total_chunks=len(chunks),
-                   min_tokens=min(token_counts),
-                   max_tokens=max(token_counts),
-                   avg_tokens=sum(token_counts) // len(token_counts),
-                   table_chunks=table_chunk_count)
-
-    # ============ FALLBACK: Markdown-based chunking ============
-    # Used when no structured elements available
-
-    def _chunk_from_markdown(
-        self,
-        docling_output: Union[Dict[str, Any], DoclingParseResult],
-        doc_id: str,
-        user_id: str,
-        filename: str
-    ) -> List[ChunkMetadata]:
-        """Fallback to markdown-based chunking (original algorithm improved)."""
-        md_content = ""
-        if isinstance(docling_output, DoclingParseResult):
-            md_content = docling_output.md_content
-        elif isinstance(docling_output, dict):
-            if "document" in docling_output:
-                md_content = docling_output["document"].get("md_content", "")
-            elif "md_content" in docling_output:
-                md_content = docling_output.get("md_content", "")
-
-        if not md_content:
-            logger.warning("no_content_for_chunking", doc_id=doc_id)
-            return []
-
-        # Parse markdown into sections
-        sections = self._parse_markdown_sections(md_content)
-
-        # Merge small sections
-        merged = self._merge_small_sections(sections)
-
-        # Split large sections
-        split = self._split_large_sections(merged)
-
-        # Create chunks
-        chunks = []
-        for idx, section in enumerate(split):
-            chunk_id = f"{doc_id}-chunk-{idx:03d}"
-            token_count = self.count_tokens(section["text"])
-
-            chunks.append(ChunkMetadata(
-                chunk_id=chunk_id,
-                doc_id=doc_id,
-                user_id=user_id,
-                filename=filename,
-                section_title=section["title"],
-                page_range=section["page_range"],
-                chunk_index=idx,
-                token_count=token_count,
-                text=section["text"],
-                created_at=datetime.now(timezone.utc)
-            ))
-
-        # Add overlap and deduplicate
-        chunks = self._add_overlap(chunks)
-        chunks = self._deduplicate(chunks)
-
-        logger.info("markdown_chunking_completed",
-                   doc_id=doc_id,
-                   sections=len(sections),
-                   chunks=len(chunks))
-
-        return chunks
-
-    def _parse_markdown_sections(self, md_content: str) -> List[Dict]:
-        """Parse markdown content into sections by headings."""
-        import re
-
-        sections = []
-        heading_pattern = re.compile(r'^(#{1,6})\s+(.+)$', re.MULTILINE)
-        headings = list(heading_pattern.finditer(md_content))
-
-        if not headings:
-            # No headings - split by paragraphs instead
-            paragraphs = md_content.split("\n\n")
-            for i, para in enumerate(paragraphs):
-                if para.strip():
-                    sections.append({
-                        "title": f"Section {i+1}",
-                        "text": para.strip(),
-                        "page_range": str((i * 3000 // len(md_content)) + 1) if md_content else "1"
-                    })
-            return sections
-
-        for i, match in enumerate(headings):
-            title = match.group(2).strip()
-            start = match.end()
-            end = headings[i + 1].start() if i + 1 < len(headings) else len(md_content)
-            text = md_content[start:end].strip()
-            page_estimate = max(1, (match.start() // 3000) + 1)
-
-            if text:
-                sections.append({
-                    "title": title,
-                    "text": text,
-                    "page_range": str(page_estimate)
-                })
-
-        return sections
-
-    def _merge_small_sections(self, sections: List[Dict]) -> List[Dict]:
-        """Merge sections smaller than min_chunk_tokens."""
-        if not sections:
-            return []
-
-        merged = []
-        current = None
-
-        for section in sections:
-            token_count = self.count_tokens(section["text"])
-
-            if current is None:
-                current = section.copy()
-            elif token_count < self.min_chunk_tokens:
-                current["text"] += "\n\n" + section["text"]
-            else:
-                merged.append(current)
-                current = section.copy()
-
-        if current:
-            merged.append(current)
-
-        return merged
-
-    def _split_large_sections(self, sections: List[Dict]) -> List[Dict]:
-        """Split sections larger than max_tokens."""
-        result = []
-
-        for section in sections:
-            token_count = self.count_tokens(section["text"])
-
-            if token_count <= self.max_tokens:
-                result.append(section)
-            else:
-                # Split at paragraph boundaries
-                split_texts = self._split_large_text(section["text"])
-                for i, split_text in enumerate(split_texts):
-                    result.append({
-                        "title": f"{section['title']} (part {i+1})" if i > 0 else section["title"],
-                        "text": split_text,
-                        "page_range": section["page_range"]
-                    })
-
-        return result
+        # Validate max token constraint
+        max_chunk_tokens = max(token_counts)
+        if max_chunk_tokens > self.max_tokens:
+            logger.error("max_token_violation",
+                        doc_id=doc_id,
+                        max_chunk_tokens=max_chunk_tokens,
+                        limit=self.max_tokens)
+            raise ValueError(
+                f"Chunk exceeds max_tokens limit: {max_chunk_tokens} > {self.max_tokens}"
+            )
