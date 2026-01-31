@@ -366,7 +366,11 @@ class SemanticChunker:
             Extracted text content
         """
         if isinstance(docling_output, dict):
-            text = docling_output.get("md_content") or docling_output.get("json_content", "")
+            # Handle both nested {"document": {"md_content": ...}} and flat {"md_content": ...}
+            if "document" in docling_output:
+                text = docling_output.get("document", {}).get("md_content", "")
+            else:
+                text = docling_output.get("md_content") or docling_output.get("json_content", "")
         else:
             # DoclingParseResult object
             text = docling_output.md_content or ""
