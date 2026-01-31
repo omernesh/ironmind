@@ -48,6 +48,9 @@ class DocumentDatabase:
                     processing_log TEXT NOT NULL,
                     page_count INTEGER,
                     chunk_count INTEGER,
+                    entity_count INTEGER,
+                    relationship_count INTEGER,
+                    is_demo INTEGER DEFAULT 0,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -82,8 +85,9 @@ class DocumentDatabase:
                 INSERT INTO documents (
                     doc_id, user_id, filename, file_type, file_size_bytes,
                     status, current_stage, error, processing_log,
-                    page_count, chunk_count, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    page_count, chunk_count, entity_count, relationship_count,
+                    is_demo, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 doc.doc_id,
                 doc.user_id,
@@ -96,6 +100,9 @@ class DocumentDatabase:
                 json.dumps([entry.model_dump(mode='json') for entry in doc.processing_log]),
                 doc.page_count,
                 doc.chunk_count,
+                doc.entity_count,
+                doc.relationship_count,
+                1 if doc.is_demo else 0,
                 doc.created_at.isoformat(),
                 doc.updated_at.isoformat(),
             ))
@@ -151,6 +158,9 @@ class DocumentDatabase:
                     processing_log = ?,
                     page_count = ?,
                     chunk_count = ?,
+                    entity_count = ?,
+                    relationship_count = ?,
+                    is_demo = ?,
                     updated_at = ?
                 WHERE doc_id = ?
             """, (
@@ -164,6 +174,9 @@ class DocumentDatabase:
                 json.dumps([entry.model_dump(mode='json') for entry in doc.processing_log]),
                 doc.page_count,
                 doc.chunk_count,
+                doc.entity_count,
+                doc.relationship_count,
+                1 if doc.is_demo else 0,
                 doc.updated_at.isoformat(),
                 doc.doc_id,
             ))
@@ -181,14 +194,14 @@ class DocumentDatabase:
         user_id: str,
         status: Optional[ProcessingStatus] = None
     ) -> List[Document]:
-        """List documents for a specific user.
+        """List documents for a specific user, including demo documents.
 
         Args:
             user_id: User identifier
             status: Optional status filter
 
         Returns:
-            List of Document models
+            List of Document models (user's documents + demo documents)
         """
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
@@ -196,15 +209,15 @@ class DocumentDatabase:
             if status:
                 query = """
                     SELECT * FROM documents
-                    WHERE user_id = ? AND status = ?
-                    ORDER BY created_at DESC
+                    WHERE (user_id = ? OR is_demo = 1) AND status = ?
+                    ORDER BY is_demo DESC, created_at DESC
                 """
                 params = (user_id, status.value)
             else:
                 query = """
                     SELECT * FROM documents
-                    WHERE user_id = ?
-                    ORDER BY created_at DESC
+                    WHERE user_id = ? OR is_demo = 1
+                    ORDER BY is_demo DESC, created_at DESC
                 """
                 params = (user_id,)
 
@@ -280,6 +293,9 @@ class DocumentDatabase:
             processing_log=processing_log,
             page_count=row["page_count"],
             chunk_count=row["chunk_count"],
+            entity_count=row.get("entity_count"),
+            relationship_count=row.get("relationship_count"),
+            is_demo=bool(row.get("is_demo", 0)),
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
         )

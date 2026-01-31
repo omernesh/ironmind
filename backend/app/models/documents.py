@@ -58,6 +58,7 @@ class Document(BaseModel):
     entity_count: Optional[int] = Field(None, description="Total entities extracted to knowledge graph")
     relationship_count: Optional[int] = Field(None, description="Total relationships extracted to knowledge graph")
     doc_relationship_count: Optional[int] = Field(None, description="Total document-level relationships detected")
+    is_demo: bool = Field(default=False, description="Whether this is a demo document visible to all users")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Document creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
