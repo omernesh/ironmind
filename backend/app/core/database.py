@@ -293,9 +293,9 @@ class DocumentDatabase:
             processing_log=processing_log,
             page_count=row["page_count"],
             chunk_count=row["chunk_count"],
-            entity_count=row.get("entity_count"),
-            relationship_count=row.get("relationship_count"),
-            is_demo=bool(row.get("is_demo", 0)),
+            entity_count=row["entity_count"],
+            relationship_count=row["relationship_count"],
+            is_demo=bool(row["is_demo"] if "is_demo" in row.keys() else 0),
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
         )
