@@ -296,42 +296,63 @@ class TxtaiIndexer:
             return []
 
         try:
+            import json
+
             # Get demo document IDs from database for filtering
             demo_doc_ids = self._get_demo_document_ids()
 
-            # Execute hybrid search with weights parameter
+            # Step 1: Execute hybrid search to get IDs and scores
             # txtai handles fusion internally when hybrid=True
-            results = self.embeddings.search(
+            search_results = self.embeddings.search(
                 query,
                 limit=limit * 2,  # Fetch more for post-filtering
                 weights=weights
             )
 
+            if not search_results:
+                return []
+
+            # Create score lookup and get chunk IDs
+            scores = {r["id"]: r["score"] for r in search_results}
+            chunk_ids = list(scores.keys())
+
+            # Step 2: Batch fetch full metadata with IN clause
+            id_placeholders = ','.join([f"'{id}'" for id in chunk_ids])
+            sql = f"SELECT * FROM txtai WHERE id IN ({id_placeholders})"
+            full_results = self.embeddings.search(sql, limit=len(chunk_ids))
+
             # Filter by user_id (or demo documents) and threshold
             filtered = []
-            for result in results:
-                chunk_user_id = result.get("user_id")
-                chunk_doc_id = result.get("doc_id")
+            for result in full_results:
+                chunk_id = result.get("id")
+
+                # Parse metadata from 'data' JSON field
+                data = json.loads(result.get("data", "{}"))
+                chunk_user_id = data.get("user_id")
+                chunk_doc_id = data.get("doc_id")
 
                 # Accept chunks from user's documents OR demo documents
                 if chunk_user_id != user_id and chunk_doc_id not in demo_doc_ids:
                     continue
 
-                score = result.get("score", 0)
+                # Get score from hybrid search results
+                score = scores.get(chunk_id, 0)
                 if score < threshold:
                     continue
+
                 filtered.append({
-                    "chunk_id": result.get("id"),
+                    "chunk_id": chunk_id,
                     "text": result.get("text"),
-                    "doc_id": result.get("doc_id"),
-                    "filename": result.get("filename"),
-                    "page_range": result.get("page_range"),
-                    "section_title": result.get("section_title"),
+                    "doc_id": chunk_doc_id,
+                    "filename": data.get("filename"),
+                    "page_range": data.get("page_range"),
+                    "section_title": data.get("section_title"),
                     "score": score,
                     "user_id": chunk_user_id  # Preserve original user_id
                 })
 
-            # Limit to requested count
+            # Sort by score (descending) and limit to requested count
+            filtered.sort(key=lambda x: x["score"], reverse=True)
             return filtered[:limit]
 
         except Exception as e:
