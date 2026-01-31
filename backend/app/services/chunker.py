@@ -489,11 +489,19 @@ class SemanticChunker:
             text = " ".join(current_words)
             token_count = self.count_tokens(text)
 
+            # Apply same token limit check as intermediate chunks
+            if token_count > self.max_tokens:
+                while current_words and token_count > self.max_tokens:
+                    current_words.pop()
+                    text = " ".join(current_words)
+                    token_count = self.count_tokens(text)
+
             # Final verification
             assert token_count <= self.max_tokens, \
                 f"Emergency split failed: {token_count} > {self.max_tokens}"
 
-            chunks.append(ChunkMetadata(
+            if current_words:  # May be empty after adjustment
+                chunks.append(ChunkMetadata(
                 chunk_id=f"{doc_id}-chunk-{base_index:03d}-{sub_index}",
                 doc_id=doc_id,
                 user_id=user_id,
