@@ -1,15 +1,29 @@
 """Hybrid chunking service using chonkie library for semantic and token-based chunking."""
 import tiktoken
+import asyncio
+from dataclasses import dataclass
 from typing import List, Dict, Optional, Any, Union, Literal
 from datetime import datetime, timezone
+from functools import lru_cache
 from chonkie import TokenChunker as ChonkieTokenChunker
 from chonkie import SemanticChunker as ChonkieSemanticChunker
 from chonkie.types import Chunk as ChonkieChunk
 
 from app.core.logging import get_logger
 from app.models.documents import ChunkMetadata, DoclingParseResult
+from app.config import settings
 
 logger = get_logger()
+
+
+@dataclass
+class ChunkingResult:
+    """Result of chunking operation with metadata about mode used."""
+    chunks: List[ChunkMetadata]
+    mode_used: str  # "semantic", "token", "token_fallback"
+    fallback_reason: Optional[str] = None
+    total_tokens: int = 0
+    avg_tokens: float = 0.0
 
 
 class SemanticChunker:
@@ -22,61 +36,66 @@ class SemanticChunker:
     - Token-based chunking for speed and simplicity
     - Configurable chunking mode (semantic/token/auto)
     - Hard max_tokens enforcement for safety
-    - Backward-compatible interface with original implementation
+    - Singleton pattern for efficient model reuse
+    - Async support for non-blocking operation
     """
 
     def __init__(
         self,
-        target_tokens: int = 1000,
-        max_tokens: int = 10000,
-        overlap_pct: float = 0.15,
-        min_chunk_tokens: int = 50,
-        mode: Literal["semantic", "token", "auto"] = "semantic",
-        embedding_model: str = "minishlab/potion-base-32M",
-        similarity_threshold: float = 0.5
+        target_tokens: Optional[int] = None,
+        max_tokens: Optional[int] = None,
+        overlap_pct: Optional[float] = None,
+        min_chunk_tokens: Optional[int] = None,
+        mode: Optional[Literal["semantic", "token", "auto"]] = None,
+        embedding_model: Optional[str] = None,
+        similarity_threshold: Optional[float] = None,
+        model_cache_dir: Optional[str] = None
     ):
         """
         Initialize the hybrid chunker with configurable strategy.
 
+        All parameters default to settings from app.config if not provided.
+
         Args:
-            target_tokens: Target chunk size in tokens (default: 1000)
-            max_tokens: Hard maximum tokens per chunk (default: 10000)
-            overlap_pct: Percentage of overlap between chunks for token mode (default: 0.15 = 15%)
-            min_chunk_tokens: Minimum chunk size (default: 50)
-            mode: Chunking strategy - "semantic", "token", or "auto" (default: "semantic")
-                  - "semantic": Use semantic boundaries for coherent chunks
-                  - "token": Use fixed token boundaries (faster, simpler)
-                  - "auto": Use semantic for large docs, token for small docs
-            embedding_model: Embedding model for semantic chunking (default: minishlab/potion-base-32M)
-            similarity_threshold: Similarity threshold for semantic splitting (default: 0.5)
+            target_tokens: Target chunk size in tokens
+            max_tokens: Hard maximum tokens per chunk
+            overlap_pct: Percentage of overlap between chunks for token mode
+            min_chunk_tokens: Minimum chunk size
+            mode: Chunking strategy - "semantic", "token", or "auto"
+            embedding_model: Embedding model for semantic chunking
+            similarity_threshold: Similarity threshold for semantic splitting
+            model_cache_dir: Directory to cache downloaded models
         """
-        self.target_tokens = target_tokens
-        self.max_tokens = max_tokens
-        self.overlap_pct = overlap_pct
-        self.min_chunk_tokens = min_chunk_tokens
-        self.mode = mode
-        self.embedding_model = embedding_model
-        self.similarity_threshold = similarity_threshold
+        # Use settings as defaults
+        self.target_tokens = target_tokens or settings.CHUNKING_TARGET_TOKENS
+        self.max_tokens = max_tokens or settings.CHUNKING_MAX_TOKENS
+        self.overlap_pct = overlap_pct or settings.CHUNKING_OVERLAP_PCT
+        self.min_chunk_tokens = min_chunk_tokens or settings.CHUNKING_MIN_CHUNK_TOKENS
+        self.mode = mode or settings.CHUNKING_MODE
+        self.embedding_model = embedding_model or settings.CHUNKING_EMBEDDING_MODEL
+        self.similarity_threshold = similarity_threshold or settings.CHUNKING_SIMILARITY_THRESHOLD
+        self.model_cache_dir = model_cache_dir or settings.CHUNKING_MODEL_CACHE_DIR
 
         # Initialize tiktoken encoder for token counting
         self.encoder = tiktoken.get_encoding("cl100k_base")
 
         # Initialize chunkers based on mode
-        overlap_tokens = int(target_tokens * overlap_pct)
+        overlap_tokens = int(self.target_tokens * self.overlap_pct)
 
-        if mode in ["semantic", "auto"]:
+        if self.mode in ["semantic", "auto"]:
             # Initialize semantic chunker with embedding model
             try:
                 logger.info("initializing_semantic_chunker",
-                           embedding_model=embedding_model,
-                           target_tokens=target_tokens,
-                           threshold=similarity_threshold)
+                           embedding_model=self.embedding_model,
+                           target_tokens=self.target_tokens,
+                           threshold=self.similarity_threshold,
+                           cache_dir=self.model_cache_dir)
 
                 self.semantic_chunker = ChonkieSemanticChunker(
-                    embedding_model=embedding_model,
-                    chunk_size=target_tokens,
-                    threshold=similarity_threshold,
-                    similarity_window=3,  # Look at 3 sentences for similarity
+                    embedding_model=self.embedding_model,
+                    chunk_size=self.target_tokens,
+                    threshold=self.similarity_threshold,
+                    similarity_window=3,
                     min_sentences_per_chunk=1,
                     min_characters_per_sentence=24
                 )
@@ -85,32 +104,38 @@ class SemanticChunker:
                 logger.error("semantic_chunker_initialization_failed",
                             error=str(e),
                             error_type=type(e).__name__)
-                if mode == "semantic":
-                    raise
+                if self.mode == "semantic":
+                    # In semantic mode, failure is critical
+                    raise RuntimeError(
+                        f"Failed to initialize semantic chunker: {e}. "
+                        "Check network connectivity and embedding model availability."
+                    ) from e
                 else:
-                    logger.warning("falling_back_to_token_chunker")
+                    # In auto mode, fall back gracefully
+                    logger.warning("falling_back_to_token_chunker_due_to_semantic_init_failure")
                     self.mode = "token"
 
-        if mode in ["token", "auto"] or not hasattr(self, 'semantic_chunker'):
+        if self.mode in ["token", "auto"] or not hasattr(self, 'semantic_chunker'):
             # Initialize token chunker as fallback or primary
             self.token_chunker = ChonkieTokenChunker(
                 tokenizer="cl100k_base",
-                chunk_size=target_tokens,
+                chunk_size=self.target_tokens,
                 chunk_overlap=overlap_tokens
             )
             logger.info("token_chunker_initialized",
-                       target_tokens=target_tokens,
+                       target_tokens=self.target_tokens,
                        overlap_tokens=overlap_tokens)
 
         logger.info("chunker_initialized",
                    mode=self.mode,
-                   target_tokens=target_tokens,
-                   max_tokens=max_tokens,
-                   library="chonkie")
+                   target_tokens=self.target_tokens,
+                   max_tokens=self.max_tokens,
+                   library="chonkie",
+                   config_source="settings")
 
     def count_tokens(self, text: str) -> int:
         """
-        Count tokens using tiktoken (compatibility method).
+        Count tokens using tiktoken.
 
         Args:
             text: Text to count tokens for
@@ -130,12 +155,8 @@ class SemanticChunker:
         """
         Main chunking method - maintains existing interface for pipeline compatibility.
 
-        Strategy (Hybrid Approach):
-        1. Extract text from docling_output (markdown or json_content)
-        2. Choose chunking strategy based on mode and document size
-        3. Use semantic chunking for coherent boundaries OR token chunking for speed
-        4. Enforce max_tokens hard limit (safety fallback)
-        5. Log statistics
+        Returns List[ChunkMetadata] for backward compatibility.
+        Use chunk_document_with_metadata() for detailed results including mode used.
 
         Args:
             docling_output: Either DoclingParseResult or dict with md_content/json_content
@@ -146,21 +167,61 @@ class SemanticChunker:
         Returns:
             List of ChunkMetadata objects
         """
+        result = self.chunk_document_with_metadata(docling_output, doc_id, user_id, filename)
+
+        # Log mode used for visibility
+        if result.fallback_reason:
+            logger.warning("chunking_used_fallback",
+                          doc_id=doc_id,
+                          requested_mode=self.mode,
+                          actual_mode=result.mode_used,
+                          reason=result.fallback_reason)
+
+        return result.chunks
+
+    def chunk_document_with_metadata(
+        self,
+        docling_output: Union[Dict[str, Any], DoclingParseResult],
+        doc_id: str,
+        user_id: str,
+        filename: str
+    ) -> ChunkingResult:
+        """
+        Chunking method with detailed result metadata.
+
+        Strategy (Hybrid Approach):
+        1. Extract text from docling_output (markdown or json_content)
+        2. Choose chunking strategy based on mode and document size
+        3. Use semantic chunking for coherent boundaries OR token chunking for speed
+        4. Enforce max_tokens hard limit (safety fallback)
+        5. Return detailed result with mode used
+
+        Args:
+            docling_output: Either DoclingParseResult or dict with md_content/json_content
+            doc_id: Document ID
+            user_id: User ID
+            filename: Original filename
+
+        Returns:
+            ChunkingResult with chunks and metadata
+        """
         # Extract text content
         text = self._extract_text(docling_output)
 
         if not text or not text.strip():
             logger.warning("empty_document_skipping_chunking", doc_id=doc_id)
-            return []
+            return ChunkingResult(chunks=[], mode_used="none", total_tokens=0, avg_tokens=0.0)
 
         text_tokens = self.count_tokens(text)
         logger.info("chunking_document",
                    doc_id=doc_id,
                    text_length=len(text),
-                   text_tokens=text_tokens)
+                   text_tokens=text_tokens,
+                   requested_mode=self.mode)
 
         # Determine which chunker to use
         use_semantic = self._should_use_semantic(text_tokens)
+        fallback_reason = None
 
         # Chunk using selected strategy
         try:
@@ -187,6 +248,7 @@ class SemanticChunker:
                 logger.warning("falling_back_to_token_chunker_after_error", doc_id=doc_id)
                 chonkie_chunks = self.token_chunker(text)
                 chunking_mode = "token_fallback"
+                fallback_reason = f"Semantic chunking failed: {type(e).__name__}"
             else:
                 raise
 
@@ -213,10 +275,55 @@ class SemanticChunker:
                 )
                 chunk_metadatas.append(chunk_metadata)
 
+        # Validate all chunks before returning
+        for chunk in chunk_metadatas:
+            assert chunk.token_count <= self.max_tokens, \
+                f"Critical: chunk {chunk.chunk_id} exceeds max ({chunk.token_count} > {self.max_tokens})"
+
         # Log statistics
         self._log_statistics(chunk_metadatas, doc_id, oversized_count, chunking_mode)
 
-        return chunk_metadatas
+        # Calculate stats
+        token_counts = [c.token_count for c in chunk_metadatas]
+        total_tokens = sum(token_counts)
+        avg_tokens = total_tokens / len(token_counts) if token_counts else 0.0
+
+        return ChunkingResult(
+            chunks=chunk_metadatas,
+            mode_used=chunking_mode,
+            fallback_reason=fallback_reason,
+            total_tokens=total_tokens,
+            avg_tokens=avg_tokens
+        )
+
+    async def chunk_document_async(
+        self,
+        docling_output: Union[Dict[str, Any], DoclingParseResult],
+        doc_id: str,
+        user_id: str,
+        filename: str
+    ) -> ChunkingResult:
+        """
+        Async wrapper for chunk_document_with_metadata.
+
+        Runs CPU-intensive chunking in thread pool to avoid blocking event loop.
+
+        Args:
+            docling_output: Either DoclingParseResult or dict with md_content/json_content
+            doc_id: Document ID
+            user_id: User ID
+            filename: Original filename
+
+        Returns:
+            ChunkingResult with chunks and metadata
+        """
+        return await asyncio.to_thread(
+            self.chunk_document_with_metadata,
+            docling_output,
+            doc_id,
+            user_id,
+            filename
+        )
 
     def _should_use_semantic(self, text_tokens: int) -> bool:
         """
@@ -311,8 +418,7 @@ class SemanticChunker:
         """
         Emergency split for chunks exceeding max_tokens.
 
-        This is a safety fallback that should rarely trigger - chonkie should
-        respect chunk_size. If a chunk exceeds max_tokens, split at word boundaries.
+        Uses optimized character-based estimation then exact token verification.
 
         Args:
             chunk: Oversized chonkie chunk
@@ -325,43 +431,64 @@ class SemanticChunker:
             List of split ChunkMetadata objects
         """
         chunks = []
+        # Approximate: 1 token ≈ 4 chars for English text
+        approx_chars_per_token = 4
+        target_chars = self.max_tokens * approx_chars_per_token
+
         words = chunk.text.split()
         current_words = []
-        current_tokens = 0
+        current_char_count = 0
         sub_index = 0
 
         for word in words:
-            word_with_space = word + " "
-            word_tokens = self.count_tokens(word_with_space)
+            word_len = len(word) + 1  # +1 for space
 
-            if current_tokens + word_tokens <= self.max_tokens:
+            # Use character count for fast approximation
+            if current_char_count + word_len <= target_chars:
                 current_words.append(word)
-                current_tokens += word_tokens
+                current_char_count += word_len
             else:
-                # Flush current chunk
+                # Flush current chunk with exact token verification
                 if current_words:
                     text = " ".join(current_words)
-                    chunks.append(ChunkMetadata(
-                        chunk_id=f"{doc_id}-chunk-{base_index:03d}-{sub_index}",
-                        doc_id=doc_id,
-                        user_id=user_id,
-                        filename=filename,
-                        section_title=None,
-                        page_range=None,
-                        chunk_index=base_index * 1000 + sub_index,
-                        token_count=self.count_tokens(text),
-                        text=text,
-                        created_at=datetime.now(timezone.utc)
-                    ))
-                    sub_index += 1
+                    token_count = self.count_tokens(text)
 
-                # Start new chunk with current word
+                    # Double-check token limit
+                    if token_count > self.max_tokens:
+                        # Rare case: remove words until under limit
+                        while current_words and token_count > self.max_tokens:
+                            current_words.pop()
+                            text = " ".join(current_words)
+                            token_count = self.count_tokens(text)
+
+                    if current_words:  # May be empty after adjustment
+                        chunks.append(ChunkMetadata(
+                            chunk_id=f"{doc_id}-chunk-{base_index:03d}-{sub_index}",
+                            doc_id=doc_id,
+                            user_id=user_id,
+                            filename=filename,
+                            section_title=None,
+                            page_range=None,
+                            chunk_index=base_index * 1000 + sub_index,
+                            token_count=token_count,
+                            text=text,
+                            created_at=datetime.now(timezone.utc)
+                        ))
+                        sub_index += 1
+
+                # Start new chunk
                 current_words = [word]
-                current_tokens = word_tokens
+                current_char_count = word_len
 
         # Flush final chunk
         if current_words:
             text = " ".join(current_words)
+            token_count = self.count_tokens(text)
+
+            # Final verification
+            assert token_count <= self.max_tokens, \
+                f"Emergency split failed: {token_count} > {self.max_tokens}"
+
             chunks.append(ChunkMetadata(
                 chunk_id=f"{doc_id}-chunk-{base_index:03d}-{sub_index}",
                 doc_id=doc_id,
@@ -370,7 +497,7 @@ class SemanticChunker:
                 section_title=None,
                 page_range=None,
                 chunk_index=base_index * 1000 + sub_index,
-                token_count=self.count_tokens(text),
+                token_count=token_count,
                 text=text,
                 created_at=datetime.now(timezone.utc)
             ))
@@ -428,3 +555,19 @@ class SemanticChunker:
             raise ValueError(
                 f"Chunk exceeds max_tokens limit: {max_chunk_tokens} > {self.max_tokens}"
             )
+
+
+# Singleton pattern for efficient model reuse
+@lru_cache(maxsize=1)
+def get_chunker() -> SemanticChunker:
+    """
+    Get singleton chunker instance.
+
+    Uses LRU cache to ensure only one instance is created.
+    All settings are loaded from app.config.
+
+    Returns:
+        Shared SemanticChunker instance
+    """
+    logger.info("creating_singleton_chunker_instance")
+    return SemanticChunker()

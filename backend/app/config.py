@@ -50,6 +50,16 @@ class Settings(BaseSettings):
     GRAPH_TRAVERSAL_DEPTH: int = 2  # Max hops for queries
     ENTITY_SIMILARITY_THRESHOLD: float = 0.85  # For resolution
 
+    # Chunking Configuration
+    CHUNKING_MODE: str = "semantic"  # semantic/token/auto
+    CHUNKING_TARGET_TOKENS: int = 1000  # Target chunk size
+    CHUNKING_MAX_TOKENS: int = 10000  # Hard limit (safety)
+    CHUNKING_OVERLAP_PCT: float = 0.15  # 15% overlap (token mode)
+    CHUNKING_MIN_CHUNK_TOKENS: int = 50  # Minimum chunk size
+    CHUNKING_EMBEDDING_MODEL: str = "minishlab/potion-base-32M"  # Semantic model
+    CHUNKING_SIMILARITY_THRESHOLD: float = 0.5  # Semantic split threshold
+    CHUNKING_MODEL_CACHE_DIR: str = "/app/models"  # Model cache location
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins into list."""
