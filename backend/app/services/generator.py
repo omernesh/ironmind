@@ -9,6 +9,9 @@ from app.core.logging import get_logger
 
 logger = get_logger()
 
+# Models requiring max_completion_tokens (GPT-5 and reasoning models)
+REASONING_MODEL_PREFIXES = ('gpt-5', 'o1', 'o3', 'o4')
+
 
 # System prompt for technical documentation assistant
 SYSTEM_PROMPT = """You are a technical documentation assistant for aerospace/defense systems.
@@ -114,8 +117,40 @@ class Generator:
     def __init__(self):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.LLM_MODEL
+        self.fallback_model = settings.LLM_FALLBACK_MODEL
         self.temperature = settings.LLM_TEMPERATURE
         self.max_tokens = settings.LLM_MAX_TOKENS
+
+    def _is_reasoning_model(self, model: str) -> bool:
+        """Check if model requires max_completion_tokens and omits temperature."""
+        return model.lower().startswith(REASONING_MODEL_PREFIXES)
+
+    def _build_completion_params(
+        self,
+        model: str,
+        messages: list,
+        max_tokens: int
+    ) -> dict:
+        """Build model-appropriate chat completion parameters.
+
+        GPT-5 and o-series: use max_completion_tokens, omit temperature
+        GPT-4 and older: use max_tokens with temperature
+        """
+        params = {
+            'model': model,
+            'messages': messages,
+            'timeout': 30.0
+        }
+
+        if self._is_reasoning_model(model):
+            params['max_completion_tokens'] = max_tokens
+            # Note: temperature, top_p, presence_penalty, frequency_penalty
+            # are not supported for reasoning models - intentionally omitted
+        else:
+            params['max_tokens'] = max_tokens
+            params['temperature'] = self.temperature
+
+        return params
 
     async def generate(
         self,
@@ -226,13 +261,22 @@ Answer the question using only the context above. Include citation numbers [1], 
             # Use more tokens for synthesis mode
             max_tokens = self.max_tokens + 200 if synthesis_mode else self.max_tokens
 
-            response = await self.client.chat.completions.create(
+            # Build model-aware parameters
+            params = self._build_completion_params(
                 model=self.model,
                 messages=messages,
-                temperature=self.temperature,
-                max_tokens=max_tokens,
-                timeout=30.0
+                max_tokens=max_tokens
             )
+
+            # Log parameter choice for debugging
+            param_type = "max_completion_tokens" if self._is_reasoning_model(self.model) else "max_tokens"
+            logger.debug("api_call_params",
+                        model=self.model,
+                        param_type=param_type,
+                        max_tokens=max_tokens,
+                        request_id=request_id)
+
+            response = await self.client.chat.completions.create(**params)
 
             answer = response.choices[0].message.content
             tokens_used = response.usage.total_tokens if response.usage else 0

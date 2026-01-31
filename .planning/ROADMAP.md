@@ -19,6 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
 - [x] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
 - [x] **Phase 6: Frontend Integration & Deployment** - IRONMIND UI, document upload, source traceability, Hetzner deployment
+- [ ] **Phase 7: OpenAI API Parameter Migration** - Migrate from max_tokens to max_completion_tokens for GPT-5 and reasoning models
 
 ## Phase Details
 
@@ -167,17 +168,48 @@ Plans:
 **Plans**: 6 plans in 3 waves
 
 Plans:
-- [ ] 06-01-PLAN.md - Landing page with IAI branding and POC disclaimer (Wave 1)
-- [ ] 06-02-PLAN.md - Document upload UI with drag-drop and status tracking (Wave 1)
-- [ ] 06-03-PLAN.md - Chat interface with inline source citations (Wave 2)
-- [ ] 06-04-PLAN.md - Production Docker with Caddy HTTPS (Wave 2)
-- [ ] 06-05-PLAN.md - Project documentation suite (Wave 3)
-- [ ] 06-06-PLAN.md - Hetzner VPS deployment and verification (Wave 3)
+- [x] 06-01-PLAN.md - Landing page with IAI branding and POC disclaimer (Wave 1)
+- [x] 06-02-PLAN.md - Document upload UI with drag-drop and status tracking (Wave 1)
+- [x] 06-03-PLAN.md - Chat interface with inline source citations (Wave 2)
+- [x] 06-04-PLAN.md - Production Docker with Caddy HTTPS (Wave 2)
+- [x] 06-05-PLAN.md - Project documentation suite (Wave 3)
+- [x] 06-06-PLAN.md - Hetzner VPS deployment and verification (Wave 3)
+
+### Phase 7: OpenAI API Parameter Migration
+
+**Goal**: Update chat completion API calls to use max_completion_tokens parameter for compatibility with GPT-5, o1, and o3 reasoning models
+**Depends on**: Phase 6
+**Requirements**: None (API compatibility fix)
+**Plans**: 1 plan in 1 wave
+**Success Criteria** (what must be TRUE):
+
+  1. Generator service uses max_completion_tokens instead of max_tokens for GPT-5 and reasoning models
+  2. Code handles both old and new models gracefully (GPT-4 fallback uses max_tokens)
+  3. Chat functionality works with gpt-5-mini model without 400 errors
+  4. Temperature parameter omitted for reasoning models (GPT-5, o1, o3, o4)
+  5. Fallback to GPT-4 on primary model errors with logging
+  6. Both model name and parameter type logged for debugging
+
+Plans:
+
+- [ ] 07-01-PLAN.md - Model-aware parameter selection with GPT-4 fallback (Wave 1)
+
+**Details:**
+
+OpenAI deprecated the `max_tokens` parameter for newer models (GPT-5 series, o1, o3 reasoning models) in favor of `max_completion_tokens`. Additionally, `temperature` and other sampling parameters are unsupported for reasoning models. The current implementation in backend/app/services/generator.py uses both deprecated parameters, causing 400 errors with gpt-5-mini.
+
+Key changes:
+
+- Add _is_reasoning_model() to detect GPT-5/o-series models via prefix matching
+- Add _build_completion_params() to select parameters based on model type
+- Use max_completion_tokens and omit temperature for reasoning models
+- Keep max_tokens + temperature for GPT-4 fallback
+- Add silent fallback with logging when primary model fails
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -188,3 +220,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 4. Knowledge Graph Integration | 5/5 | Complete | 2026-01-29 |
 | 5. Multi-Source Synthesis | 4/4 | Complete | 2026-01-29 |
 | 6. Frontend Integration & Deployment | 6/6 | Complete | 2026-01-29 |
+| 7. OpenAI API Parameter Migration | 0/1 | Planned | - |

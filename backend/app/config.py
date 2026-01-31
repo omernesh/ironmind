@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""  # Required for embeddings + LLM
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     LLM_MODEL: str = "gpt-5-mini"
+    LLM_FALLBACK_MODEL: str = "gpt-4"  # Emergency fallback when gpt-5-mini unavailable
     LLM_TEMPERATURE: float = 0.1  # Low for factual accuracy
     LLM_MAX_TOKENS: int = 500
 
