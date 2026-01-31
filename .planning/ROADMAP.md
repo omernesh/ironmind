@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Knowledge Graph Integration** - FalkorDB setup, entity/relation extraction, graph-aware retrieval
 - [x] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
 - [x] **Phase 6: Frontend Integration & Deployment** - IRONMIND UI, document upload, source traceability, Hetzner deployment
-- [ ] **Phase 7: OpenAI API Parameter Migration** - Migrate from max_tokens to max_completion_tokens for GPT-5 and reasoning models
+- [x] **Phase 7: OpenAI API Parameter Migration** - Migrate from max_tokens to max_completion_tokens for GPT-5 and reasoning models
 
 ## Phase Details
 
@@ -220,4 +220,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Knowledge Graph Integration | 5/5 | Complete | 2026-01-29 |
 | 5. Multi-Source Synthesis | 4/4 | Complete | 2026-01-29 |
 | 6. Frontend Integration & Deployment | 6/6 | Complete | 2026-01-29 |
-| 7. OpenAI API Parameter Migration | 0/1 | Planned | - |
+| 7. OpenAI API Parameter Migration | 1/1 | Complete | 2026-01-31 |

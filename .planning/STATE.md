@@ -5,23 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Accurate, grounded answers from technical documentation with multi-source synthesis and transparent traceability
-**Current focus:** Phase 2.1 Complete - Document Ingestion Pipeline Fixed
+**Current focus:** Phase 7 Added - OpenAI API Parameter Migration
 
 ## Current Position
 
-Phase: 2.1 of 6 (Fix Document Ingestion Pipeline)
-Plan: 3 of 3 in current phase
-Status: PHASE COMPLETE
-Last activity: 2026-01-29 - Completed 02.1-03-PLAN.md (Test and Re-enable Entity Extraction)
+Phase: 7 of 7 (OpenAI API Parameter Migration)
+Plan: 1 of 1 in current phase
+Status: COMPLETE
+Last activity: 2026-01-31 - Completed 07-01-PLAN.md (OpenAI API Parameter Migration)
+Next action: System ready for production use with gpt-5-mini
 
-Progress: [██████████] 100% (30 of 30 original plans) + 3/3 hotfix plans
+Progress: [██████████] 100% (31 of 31 plans) + 3/3 hotfix plans
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 33 (30 original + 3 hotfix)
+- Total plans completed: 34 (31 original + 3 hotfix)
 - Average duration: 9 min
-- Total execution time: 8.2 hours
+- Total execution time: 8.3 hours
 
 **By Phase:**
 
@@ -34,11 +35,12 @@ Progress: [██████████] 100% (30 of 30 original plans) + 3/3 
 | 04-knowledge-graph-integration | 5/5 | 69m | 14m |
 | 05-multi-source-synthesis | 4/4 | 21m | 5m |
 | 06-frontend-integration-deployment | 6/6 | 52m | 9m |
+| 07-openai-api-parameter-migration | 1/1 | 5m | 5m |
 
 **Recent Trend:**
 
-- Last 6 plans: 06-06 (30m), 02.1-01 (4m), 02.1-02 (4m), 02.1-03 (4m)
-- Trend: Phase 2.1 hotfix COMPLETE
+- Last 6 plans: 02.1-02 (4m), 02.1-03 (4m), 06-06 (30m), 07-01 (5m)
+- Trend: Phase 7 COMPLETE (API compatibility fix)
 
 *Updated after each plan completion*
 
@@ -361,6 +363,18 @@ Recent decisions affecting current work:
 - Implementation: Security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy)
 - Implementation: Health checks with service dependencies for startup ordering
 
+**From 07-01 execution:**
+- Implementation: REASONING_MODEL_PREFIXES tuple ('gpt-5', 'o1', 'o3', 'o4') for model detection
+- Implementation: _is_reasoning_model() method uses string prefix matching for model type detection
+- Implementation: _build_completion_params() builds model-appropriate API parameters
+- Implementation: max_completion_tokens for GPT-5/o-series, max_tokens for GPT-4 fallback
+- Implementation: Temperature parameter omitted for reasoning models (unsupported)
+- Implementation: LLM_FALLBACK_MODEL config setting defaults to gpt-4
+- Implementation: _should_fallback() detects model/unsupported/unavailable errors (not rate limits)
+- Implementation: _call_completion() helper for reusable API call with logging
+- Implementation: Silent GPT-4 fallback when primary model fails with model-related errors
+- Implementation: answer_generated log includes model_used field for debugging
+
 ### Pending Todos
 
 2 todos captured:
@@ -473,6 +487,16 @@ Recent decisions affecting current work:
 
 ### Roadmap Evolution
 
+**Phase 7 COMPLETE (2026-01-31):**
+
+- Plan 07-01 complete: OpenAI API parameter migration for GPT-5 and reasoning models
+- Model-aware parameter selection: max_completion_tokens for GPT-5/o-series, max_tokens for GPT-4
+- Temperature parameter correctly omitted for reasoning models (unsupported)
+- Silent GPT-4 fallback when primary model fails with model-related errors
+- Comprehensive logging for debugging (model, parameter type, actual model used)
+- **Root cause fixed:** Generator now uses correct API parameters for gpt-5-mini
+- **Verification:** All 7 verification criteria passed
+
 **Phase 2.1 inserted after Phase 2 (2026-01-29):**
 
 - **Reason:** URGENT - Critical production issue with document chunking producing 300K-6.7M token chunks that exceed OpenAI API limits (300K max)
@@ -484,7 +508,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-29
-Stopped at: Completed 02.1-03-PLAN.md (Test and Re-enable Entity Extraction)
+Last session: 2026-01-31
+Stopped at: Completed 07-01-PLAN.md (OpenAI API Parameter Migration)
 Resume file: None
-Next action: Phase 2.1 COMPLETE - Ready for production testing
+Next action: ALL PHASES COMPLETE - System ready for production with GPT-5-mini
