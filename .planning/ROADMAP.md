@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Multi-Source Synthesis** - Cross-document reasoning, citation aggregation, synthesis prompting
 - [x] **Phase 6: Frontend Integration & Deployment** - IRONMIND UI, document upload, source traceability, Hetzner deployment
 - [x] **Phase 7: OpenAI API Parameter Migration** - Migrate from max_tokens to max_completion_tokens for GPT-5 and reasoning models
+- [ ] **Phase 8: E2E Testing & Production Validation** - Complete production validation with comprehensive testing
 
 ## Phase Details
 
@@ -192,7 +193,7 @@ Plans:
 
 Plans:
 
-- [ ] 07-01-PLAN.md - Model-aware parameter selection with GPT-4 fallback (Wave 1)
+- [x] 07-01-PLAN.md - Model-aware parameter selection with GPT-4 fallback (Wave 1)
 
 **Details:**
 
@@ -206,10 +207,80 @@ Key changes:
 - Keep max_tokens + temperature for GPT-4 fallback
 - Add silent fallback with logging when primary model fails
 
+### Phase 8: E2E Testing & Production Validation
+
+**Goal**: Verify complete end-to-end customer journey works in production with real documents and test comprehensive chat functionality
+**Depends on**: Phase 7
+**Requirements**: All previous requirements validated in production environment
+**Plans**: 4 plans in 2 waves
+**Success Criteria** (what must be TRUE):
+
+  1. New user can successfully register and login via production UI
+  2. User can upload demo documents and see Processing -> Indexed status progression
+  3. All 16 test questions from TEST_QUESTIONS.md return valid answers with citations
+  4. Chat responses work for both standard mode (single doc) and synthesis mode (multi-doc)
+  5. Chrome DevTools shows no console errors during user journey
+  6. All API calls complete successfully (no 400, 401, 500 errors)
+  7. Response times meet performance targets (<10s per query)
+  8. Source citations display correctly with doc names, pages, and snippets
+  9. Multi-source synthesis indicator activates for cross-document queries
+  10. Knowledge graph-aware retrieval provides relationship context
+  11. Conversation history preserves context across multiple turns
+  12. Production deployment at https://ironmind.chat fully functional
+
+Plans:
+
+- [ ] 08-01-PLAN.md - Production environment verification with Chrome DevTools (Wave 1)
+- [ ] 08-02-PLAN.md - End-to-end user journey testing (register, login, upload, chat) (Wave 1)
+- [ ] 08-03-PLAN.md - Comprehensive chat testing with all 16 TEST_QUESTIONS.md scenarios (Wave 2)
+- [ ] 08-04-PLAN.md - Test report generation with findings and recommendations (Wave 2)
+
+**Details:**
+
+**Critical Issue:** User reports chat not returning answers despite documents being processed. This phase will systematically test the entire customer journey to identify and resolve production issues.
+
+**Test Scope:**
+1. **User Registration & Authentication**: Create new user, login, session persistence
+2. **Document Upload & Processing**: Upload demo docs collection, verify indexing pipeline
+3. **Chat Functionality**: All 16 test scenarios including:
+   - Basic factual questions (Q1-3)
+   - Multi-source synthesis mode (Q4-6)
+   - Token limit edge cases (Q7-9)
+   - Model compatibility (Q10-11)
+   - Error handling (Q12-13)
+   - Synthesis mode activation logic (Q14-16)
+4. **Performance Validation**: Response times, token usage, latency tracking
+5. **UI/UX Verification**: Chrome DevTools console, network tab, citations display
+6. **Production Deployment Health**: All services running, HTTPS working, CORS configured
+
+**Investigation Priority:**
+- Check if GPT-5-mini API calls are actually using max_completion_tokens (Phase 7 fix)
+- Verify OpenAI API key is valid and has sufficient quota
+- Check backend logs for errors during chat requests
+- Verify document indexing completed successfully (txtai index populated)
+- Test retrieval pipeline (hybrid search returning chunks)
+- Test reranking pipeline (DeepInfra Qwen3-Reranker working)
+- Test generation pipeline (OpenAI API responding)
+- Check CORS headers for frontend-backend communication
+- Verify demo docs collection exists and is indexed
+
+**Tools:**
+- Chrome DevTools for frontend debugging
+- Browser Network tab for API call inspection
+- Backend logs via `docker compose -f infra/docker-compose.prod.yml logs backend`
+- TEST_QUESTIONS.md for comprehensive chat testing scenarios
+
+**Expected Deliverables:**
+1. Test execution report with pass/fail status for all 16 scenarios
+2. Root cause analysis for any failing tests
+3. Production deployment health assessment
+4. Recommendations for fixes or improvements
+5. Updated documentation if issues found
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -221,3 +292,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 5. Multi-Source Synthesis | 4/4 | Complete | 2026-01-29 |
 | 6. Frontend Integration & Deployment | 6/6 | Complete | 2026-01-29 |
 | 7. OpenAI API Parameter Migration | 1/1 | Complete | 2026-01-31 |
+| 8. E2E Testing & Production Validation | 0/4 | Planned | - |

@@ -279,6 +279,8 @@ class TxtaiIndexer:
         Score normalization (scoring.normalize=True) enables proper fusion
         equivalent to Reciprocal Rank Fusion (RRF).
 
+        Includes both user's own documents and demo documents (is_demo=1).
+
         Args:
             query: Search query
             user_id: User ID for filtering (multi-tenant isolation)
@@ -294,6 +296,9 @@ class TxtaiIndexer:
             return []
 
         try:
+            # Get demo document IDs from database for filtering
+            demo_doc_ids = self._get_demo_document_ids()
+
             # Execute hybrid search with weights parameter
             # txtai handles fusion internally when hybrid=True
             results = self.embeddings.search(
@@ -302,11 +307,16 @@ class TxtaiIndexer:
                 weights=weights
             )
 
-            # Filter by user_id and threshold
+            # Filter by user_id (or demo documents) and threshold
             filtered = []
             for result in results:
-                if result.get("user_id") != user_id:
+                chunk_user_id = result.get("user_id")
+                chunk_doc_id = result.get("doc_id")
+
+                # Accept chunks from user's documents OR demo documents
+                if chunk_user_id != user_id and chunk_doc_id not in demo_doc_ids:
                     continue
+
                 score = result.get("score", 0)
                 if score < threshold:
                     continue
@@ -318,7 +328,7 @@ class TxtaiIndexer:
                     "page_range": result.get("page_range"),
                     "section_title": result.get("section_title"),
                     "score": score,
-                    "user_id": user_id
+                    "user_id": chunk_user_id  # Preserve original user_id
                 })
 
             # Limit to requested count
@@ -327,6 +337,27 @@ class TxtaiIndexer:
         except Exception as e:
             logger.error("hybrid_search_failed", error=str(e), user_id=user_id)
             return []
+
+    def _get_demo_document_ids(self) -> set:
+        """Get set of document IDs marked as demo documents.
+
+        Returns:
+            Set of doc_ids where is_demo=1
+        """
+        try:
+            import sqlite3
+            db_path = f"{settings.DATA_DIR}/documents.db"
+
+            conn = sqlite3.connect(db_path)
+            cursor = conn.execute("SELECT doc_id FROM documents WHERE is_demo = 1")
+            demo_doc_ids = {row[0] for row in cursor.fetchall()}
+            conn.close()
+
+            logger.debug("demo_documents_loaded", count=len(demo_doc_ids))
+            return demo_doc_ids
+        except Exception as e:
+            logger.warning("failed_to_load_demo_documents", error=str(e))
+            return set()
 
     def get_document_chunks(self, doc_id: str, user_id: str) -> List[Dict]:
         """Get all chunks for a document."""
