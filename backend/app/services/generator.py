@@ -152,6 +152,33 @@ class Generator:
 
         return params
 
+    def _should_fallback(self, error: Exception) -> bool:
+        """Check if error warrants falling back to GPT-4."""
+        error_str = str(error).lower()
+        # Fallback on model unavailability or unsupported parameter errors
+        return any(keyword in error_str for keyword in [
+            'model', 'unsupported', 'unavailable', 'does not exist'
+        ])
+
+    async def _call_completion(
+        self,
+        model: str,
+        messages: list,
+        max_tokens: int,
+        request_id: str
+    ) -> Any:
+        """Make chat completion API call with model-aware parameters."""
+        params = self._build_completion_params(model, messages, max_tokens)
+
+        param_type = "max_completion_tokens" if self._is_reasoning_model(model) else "max_tokens"
+        logger.debug("api_call_params",
+                    model=model,
+                    param_type=param_type,
+                    max_tokens=max_tokens,
+                    request_id=request_id)
+
+        return await self.client.chat.completions.create(**params)
+
     async def generate(
         self,
         query: str,
@@ -261,22 +288,29 @@ Answer the question using only the context above. Include citation numbers [1], 
             # Use more tokens for synthesis mode
             max_tokens = self.max_tokens + 200 if synthesis_mode else self.max_tokens
 
-            # Build model-aware parameters
-            params = self._build_completion_params(
-                model=self.model,
-                messages=messages,
-                max_tokens=max_tokens
-            )
-
-            # Log parameter choice for debugging
-            param_type = "max_completion_tokens" if self._is_reasoning_model(self.model) else "max_tokens"
-            logger.debug("api_call_params",
-                        model=self.model,
-                        param_type=param_type,
+            # Try primary model with automatic fallback
+            try:
+                response = await self._call_completion(
+                    model=self.model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    request_id=request_id
+                )
+            except Exception as e:
+                if self._should_fallback(e) and self.model != self.fallback_model:
+                    logger.warning("primary_model_failed_using_fallback",
+                                  primary_model=self.model,
+                                  fallback_model=self.fallback_model,
+                                  error=str(e),
+                                  request_id=request_id)
+                    response = await self._call_completion(
+                        model=self.fallback_model,
+                        messages=messages,
                         max_tokens=max_tokens,
-                        request_id=request_id)
-
-            response = await self.client.chat.completions.create(**params)
+                        request_id=request_id
+                    )
+                else:
+                    raise
 
             answer = response.choices[0].message.content
             tokens_used = response.usage.total_tokens if response.usage else 0
@@ -290,6 +324,7 @@ Answer the question using only the context above. Include citation numbers [1], 
             logger.info(
                 "answer_generated",
                 request_id=request_id,
+                model_used=response.model,
                 latency_ms=latency_ms,
                 tokens_used=tokens_used,
                 chunks_used=len(chunks),
