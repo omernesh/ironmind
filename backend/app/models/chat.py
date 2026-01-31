@@ -9,7 +9,7 @@ class Citation(BaseModel):
     id: int = Field(..., description="Footnote number [1], [2], etc.")
     doc_id: str = Field(..., description="Document UUID")
     filename: str = Field(..., description="Original filename")
-    page_range: str = Field(..., description="Page range (e.g., '42-43')")
+    page_range: Optional[str] = Field(None, description="Page range (e.g., '42-43')")
     section_title: Optional[str] = Field(None, description="Section heading if available")
     snippet: str = Field(..., description="First 200 chars of chunk text")
     score: Optional[float] = Field(None, description="Reranker score for diagnostics")
